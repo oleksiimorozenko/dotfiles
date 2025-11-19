@@ -1,0 +1,77 @@
+# ==============================================================================
+# Nano Configuration
+# ==============================================================================
+# Enhanced nano editor with modern features and better keybindings
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Basic Settings
+# ------------------------------------------------------------------------------
+
+set tabsize 4                # Tab width
+set tabstospaces             # Convert tabs to spaces
+set trimblanks               # Trim trailing whitespace on save
+set softwrap                 # Wrap long lines at word boundaries
+set atblanks                 # Wrap at word boundaries, not mid-word
+set constantshow             # Always show cursor position
+set nohelp                   # Hide help text (more screen space)
+set autoindent               # Auto-indent new lines
+set indicator                # Show scrollbar indicator
+set minibar                  # Minimal status bar at bottom
+
+# ------------------------------------------------------------------------------
+# History & Logging
+# ------------------------------------------------------------------------------
+
+set historylog               # Save last 100 search/replace strings
+set positionlog              # Remember cursor position for each file
+
+# ------------------------------------------------------------------------------
+# Backups
+# ------------------------------------------------------------------------------
+
+set backup                   # Create backup files
+set backupdir "~/.nano-backups"  # Store backups in home directory
+
+# ------------------------------------------------------------------------------
+# Modern Keybindings
+# ------------------------------------------------------------------------------
+
+# Find (Ctrl+F instead of Ctrl+W)
+unbind ^W main
+bind ^F whereis main
+
+# Undo/Redo
+bind ^Z undo main            # Ctrl+Z for undo
+bind ^Y redo main            # Ctrl+Y for redo
+
+# Selection & Deletion
+set zap                      # Ctrl+Shift+Arrow to select, Backspace to delete
+set cutfromcursor            # Ctrl+K cuts to end of line (not whole line)
+
+# ------------------------------------------------------------------------------
+# Syntax Highlighting
+# ------------------------------------------------------------------------------
+
+# Include all available syntax definitions
+include "/opt/homebrew/share/nano/*.nanorc"
+include "/opt/homebrew/share/nano/extra/*.nanorc"
+
+# Fallback for non-Homebrew installations
+include "/usr/local/share/nano/*.nanorc"
+include "/usr/share/nano/*.nanorc"
+
+# ------------------------------------------------------------------------------
+# Quick Reference
+# ------------------------------------------------------------------------------
+# Common keybindings:
+#   Ctrl+F     - Find
+#   Ctrl+\     - Replace
+#   Ctrl+Z     - Undo
+#   Ctrl+Y     - Redo
+#   Ctrl+K     - Cut to end of line
+#   Ctrl+U     - Paste
+#   Ctrl+O     - Save
+#   Ctrl+X     - Exit
+#   Ctrl+G     - Help (shows all keybindings)
+# ==============================================================================

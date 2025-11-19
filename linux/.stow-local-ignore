@@ -1,0 +1,3 @@
+# Stow ignore patterns for linux/ package
+README\.md
+\.gitkeep

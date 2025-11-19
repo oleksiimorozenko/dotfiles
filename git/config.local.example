@@ -1,0 +1,84 @@
+# ==============================================================================
+# Git Local Configuration Example
+# ==============================================================================
+# Copy this to ~/.config/git/config.local and customize for your setup
+#
+# Usage:
+#   cp ~/.config/git/config.local.example ~/.config/git/config.local
+#   vim ~/.config/git/config.local
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Default User Identity
+# ------------------------------------------------------------------------------
+# These settings apply to all repositories unless overridden by includeIf
+
+[user]
+	name = Your Name
+	email = your.email@example.com
+
+# ------------------------------------------------------------------------------
+# Per-Directory User Identity (Conditional Includes)
+# ------------------------------------------------------------------------------
+# Use includeIf to set different identities for different directories
+# This is useful for separating work and personal projects
+#
+# IMPORTANT: Paths must end with a trailing slash!
+
+# Work repositories (example: all repos under ~/work/)
+[includeIf "gitdir:~/work/"]
+	path = ~/.config/git/config.work
+
+# Personal repositories (example: all repos under ~/personal/)
+[includeIf "gitdir:~/personal/"]
+	path = ~/.config/git/config.personal
+
+# Specific organization (example: GitHub organization repos)
+[includeIf "gitdir:~/code/company-name/"]
+	path = ~/.config/git/config.company
+
+# GitHub pattern matching (all GitHub repos)
+# [includeIf "hasconfig:remote.*.url:git@github.com:*/**"]
+# 	path = ~/.config/git/config.github
+
+# ------------------------------------------------------------------------------
+# Creating Referenced Config Files
+# ------------------------------------------------------------------------------
+# For each includeIf directive above, create a corresponding config file:
+#
+# ~/.config/git/config.work:
+#   [user]
+#       name = Work Name
+#       email = work.email@company.com
+#       signingkey = WORK_GPG_KEY_ID
+#
+# ~/.config/git/config.personal:
+#   [user]
+#       name = Personal Name
+#       email = personal@email.com
+#       signingkey = PERSONAL_GPG_KEY_ID
+#
+# ~/.config/git/config.company:
+#   [user]
+#       name = Full Name
+#       email = name@company.com
+#   [core]
+#       sshCommand = ssh -i ~/.ssh/company_rsa
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Additional Local Settings
+# ------------------------------------------------------------------------------
+# Add any other machine-specific git configuration here
+
+# Example: Enable commit signing by default
+# [commit]
+# 	gpgsign = true
+
+# Example: Set custom diff tool
+# [diff]
+# 	tool = vimdiff
+
+# Example: Custom merge tool
+# [merge]
+# 	tool = meld

@@ -1,0 +1,441 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Use Catppuccin Mocha color palette throughout
+palette = 'catppuccin_mocha'
+
+# Command timeout for module execution (milliseconds)
+command_timeout = 500
+
+format = """
+$username\
+$hostname \
+$directory\
+$git_branch\
+$git_status\
+$time\
+$cmd_duration\
+$fill\
+$terraform\
+$container\
+$docker_context\
+$helm\
+$nodejs\
+$ruby\
+$rust\
+$python\
+$php\
+$golang\
+$java\
+$kubernetes\
+$env_var\
+$character\
+"""
+
+right_format = "" # Do not use right prompt
+
+[character]
+disabled = false
+success_symbol = "[\n>](bold blue)"             # \n creates newline before >
+error_symbol = "[\nx](bold red)"                # After failed command
+vimcmd_symbol = "[\n<](bold green)"             # Vim normal mode
+vimcmd_visual_symbol = "[\n<](bold yellow)"     # Vim visual mode
+vimcmd_replace_symbol = "[\n<](bold mauve)"     # Vim replace mode
+vimcmd_replace_one_symbol = "[\n<](bold mauve)" # Vim replace one char
+
+[username]
+disabled = false
+show_always = true
+style_user = "mauve bold"
+style_root = "red bold"
+format = "[\\[$user\\]]($style)"
+
+[hostname]
+disabled = false
+ssh_only = true
+ssh_symbol = "(ssh) "
+style = "pink bold"
+format = "[$ssh_symbol$hostname]($style)"
+
+[directory]
+disabled = false
+style = "teal bold"
+format = "[$path]($style)[$read_only]($read_only_style) "
+truncation_length = 8
+truncate_to_repo = false
+truncation_symbol = ".../"
+read_only = " ro"
+read_only_style = "red bold"
+home_symbol = "~"
+use_os_path_sep = true
+
+[fill]
+symbol = " "
+style = ""
+
+[line_break]
+disabled = false
+
+# Mocking the robbyrussell git branch format with color coding
+[git_branch]
+disabled = false
+symbol = ""
+style = "bold blue"
+format = "[git:\\(]($style)[$branch(:$remote_branch)](bold red)[\\)]($style)"
+only_attached = false
+
+[git_status]
+disabled = false
+# Show status after git:(branch) - empty when clean, indicators when dirty
+format = ' ([$all_status$ahead_behind]($style))'
+style = "bold yellow"
+
+# ASCII-only status indicators with colors
+conflicted = "[=](bold maroon)"
+ahead = "[>$count](bold green) "
+behind = "[<$count](bold red) "
+diverged = "[<>](bold red)"
+untracked = "[?$count](bold sky) "
+stashed = "[*$count](bold overlay0) "
+modified = "[!$count](bold peach) "
+staged = "[+$count](bold green) "
+renamed = "[r$count](bold sky) "
+deleted = "[x$count](bold red) "
+up_to_date = ""  # Empty when clean - nothing shows
+
+# Show commit hash. Enable when needed.
+[git_commit]
+disabled = true
+commit_hash_length = 7
+format = '[\($hash$tag\)]($style) '
+style = "green"
+only_detached = true
+tag_disabled = true
+tag_symbol = " tag "
+
+# Git State - Operations in progress (rebase, merge, etc.)
+[git_state]
+disabled = false
+rebase = "rebase"
+merge = "merge"
+revert = "revert"
+cherry_pick = "cherry"
+bisect = "bisect"
+am = "am"
+am_or_rebase = "am/rebase"
+style = "yellow"
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+
+[kubernetes]
+disabled = false
+symbol = "\\[k8s\\]:"
+format = "[$symbol$context(\\($namespace\\))]($style) "
+
+# Color coding depending on the context name patterns
+[[kubernetes.contexts]]
+context_pattern = ".*local.*|.*kind.*|.*rancher.*|.*docker-desktop.*"
+style = "sky bold"
+context_alias = "local"
+
+[[kubernetes.contexts]]
+context_pattern = ".*dev.*|.*development.*"
+style = "sapphire bold"
+
+[[kubernetes.contexts]]
+context_pattern = ".*staging.*|.*stg.*|.*stage.*"
+style = "yellow bold"
+context_alias = "staging"
+
+[[kubernetes.contexts]]
+context_pattern = ".*prod.*|.*production.*|.*prd.*"
+style = "red bold"
+context_alias = "production"
+
+[helm]
+disabled = false
+symbol = "helm "
+format = "[$symbol($version )]($style)"
+style = "lavender bold"
+detect_extensions = []
+detect_files = ['helmfile.yaml', 'Chart.yaml']
+detect_folders = []
+
+[terraform]
+disabled = true
+symbol = "tf "
+style = "mauve"
+format = "[$symbol$workspace]($style) "
+detect_extensions = ['tf', 'tfplan', 'tfstate']
+detect_files = []
+detect_folders = ['.terraform']
+
+[docker_context]
+disabled = false
+symbol = "docker "
+style = "blue bold"
+format = "[$symbol$context]($style) "
+only_with_files = true
+detect_extensions = []
+detect_files = ['docker-compose.yml', 'docker-compose.yaml', 'Dockerfile']
+detect_folders = []
+
+[container]
+disabled = true  # Enable if you often work inside containers
+symbol = "container "
+style = "red dimmed"
+format = "[$symbol\\[$name\\]]($style) "
+
+# Disabled in favor of custom env_var module below
+[aws]
+disabled = true
+symbol = "aws "
+style = "peach"
+format = "[$symbol($profile )(\\($region\\) )]($style)"
+expiration_symbol = "exp "
+
+# AWS Profile display - shows "(none)" when not set
+[env_var.AWS_PROFILE]
+variable = "AWS_PROFILE"
+default = "(none)"
+symbol = "\\[aws\\]:"
+format = "[$symbol($env_value)]($style) "
+style = "peach bold"
+disabled = false
+
+[python]
+disabled = false
+symbol = "py "
+style = "sky bold"
+format = '[$symbol($version )(\\($virtualenv\\) )]($style)'
+pyenv_version_name = false
+pyenv_prefix = "pyenv "
+python_binary = ['python3', 'python', 'python2']
+detect_extensions = ['py']
+detect_files = [
+    'requirements.txt',
+    'requirements-dev.txt',
+    '.python-version',
+    'Pipfile',
+    'pyproject.toml',
+    'setup.py',
+    'tox.ini',
+]
+detect_folders = []
+
+[golang]
+disabled = false
+symbol = "go "
+style = "sapphire bold"
+format = "[$symbol($version )]($style)"
+detect_extensions = ['go']
+detect_files = ['go.mod', 'go.sum', 'go.work', 'glide.yaml']
+detect_folders = ['Godeps']
+
+[nodejs]
+disabled = false
+symbol = "node "
+style = "green bold"
+format = "[$symbol($version )]($style)"
+not_capable_style = "red bold"
+detect_extensions = ['js', 'mjs', 'cjs', 'ts', 'mts', 'cts']
+detect_files = ['package.json', '.node-version', '.nvmrc']
+detect_folders = ['node_modules']
+
+[rust]
+disabled = true  # Enable if you work with Rust
+symbol = "rust "
+style = "red"
+format = "[$symbol($version )]($style)"
+detect_extensions = ['rs']
+detect_files = ['Cargo.toml']
+detect_folders = []
+
+[java]
+disabled = true  # Enable if you work with Java
+symbol = "java "
+style = "red"
+format = "[$symbol($version )]($style)"
+detect_extensions = ['java', 'class', 'jar', 'gradle', 'clj', 'cljc']
+detect_files = [
+    'pom.xml',
+    'build.gradle.kts',
+    'build.sbt',
+    '.java-version',
+    'deps.edn',
+    'project.clj',
+    'build.boot',
+]
+
+[ruby]
+disabled = false
+symbol = "ruby "
+style = "red"
+format = "[$symbol($version )]($style)"
+detect_extensions = ['rb']
+detect_files = ['Gemfile', '.ruby-version']
+detect_folders = []
+
+[php]
+disabled = true  # Enable if you work with PHP
+symbol = "php "
+style = "mauve"
+format = "[$symbol($version )]($style)"
+detect_extensions = ['php']
+detect_files = ['composer.json', '.php-version']
+
+[cmd_duration]
+disabled = false
+min_time = 500               # Show for commands taking > 500ms
+style = "yellow bold"
+format = " took [$duration]($style) "
+show_milliseconds = false
+show_notifications = true
+min_time_to_notify = 30_000  # Desktop notification after 30 seconds
+
+[time]
+disabled = false
+time_format = "%R"                 # 24-hour format (HH:MM)
+style = "lavender bold"            # More visible than surface2
+format = "[\\[]($style)[$time]($style)[\\]]($style)"
+utc_time_offset = "local"
+
+[jobs]
+disabled = true  # Enable to see background job count
+symbol = "jobs "
+style = "blue"
+number_threshold = 1
+symbol_threshold = 1
+format = "[$symbol$number]($style) "
+
+[battery]
+disabled = true
+
+[memory_usage]
+disabled = true
+
+[os]
+disabled = true
+
+[scala]
+disabled = true
+
+[c]
+disabled = true
+
+[cmake]
+disabled = true
+
+[cobol]
+disabled = true
+
+[crystal]
+disabled = true
+
+[dart]
+disabled = true
+
+[deno]
+disabled = true
+
+[dotnet]
+disabled = true
+
+[elixir]
+disabled = true
+
+[elm]
+disabled = true
+
+[erlang]
+disabled = true
+
+[fennel]
+disabled = true
+
+[gradle]
+disabled = true
+
+[haskell]
+disabled = true
+
+[haxe]
+disabled = true
+
+[julia]
+disabled = true
+
+[kotlin]
+disabled = true
+
+[lua]
+disabled = true
+
+[nim]
+disabled = true
+
+[nix_shell]
+disabled = true
+
+[ocaml]
+disabled = true
+
+[perl]
+disabled = true
+
+[purescript]
+disabled = true
+
+[rlang]
+disabled = true
+
+[red]
+disabled = true
+
+[swift]
+disabled = true
+
+[zig]
+disabled = true
+
+# ============================================================================
+# CATPPUCCIN MOCHA COLOR PALETTE
+# ============================================================================
+# Complete color palette for reference and usage
+# Use these color names in 'style' fields throughout the config
+# ============================================================================
+
+[palettes.catppuccin_mocha]
+# Accent colors
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+
+# Text colors
+text = "#cdd6f4"
+subtext1 = "#bac2de"
+subtext0 = "#a6adc8"
+
+# Overlay colors
+overlay2 = "#9399b2"
+overlay1 = "#7f849c"
+overlay0 = "#6c7086"
+
+# Surface colors
+surface2 = "#585b70"
+surface1 = "#45475a"
+surface0 = "#313244"
+
+# Base colors
+base = "#1e1e2e"
+mantle = "#181825"
+crust = "#11111b"

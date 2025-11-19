@@ -1,0 +1,96 @@
+# ==============================================================================
+# Git Global Configuration
+# ==============================================================================
+
+[user]
+	# Set these in ~/.config/git/config.local or via git config --global
+	# name = Your Name
+	# email = your.email@example.com
+
+[core]
+	editor = nvim
+	excludesfile = ~/.config/git/ignore
+	autocrlf = input
+	filemode = false
+	pager = delta
+
+[init]
+	defaultBranch = main
+
+[pull]
+	rebase = false
+
+[push]
+	default = simple
+	autoSetupRemote = true
+
+[fetch]
+	prune = true
+	pruneTags = true
+
+[diff]
+	colorMoved = default
+	indentHeuristic = on
+	noprefix = true
+
+[interactive]
+	diffFilter = delta --color-only
+
+[merge]
+	conflictstyle = diff3
+
+[rebase]
+	autoStash = true
+
+[rerere]
+	enabled = true
+
+[delta]
+	navigate = true
+	line-numbers = true
+	side-by-side = false
+	syntax-theme = base16
+	file-style = bold yellow
+	file-decoration-style = none
+	hunk-header-decoration-style = blue box
+	minus-style = syntax "#3f2d3d"
+	minus-emph-style = syntax "#763842"
+	plus-style = syntax "#283b4d"
+	plus-emph-style = syntax "#316172"
+
+[alias]
+	# Short aliases
+	st = status
+	co = checkout
+	br = branch
+	ci = commit
+	unstage = reset HEAD --
+	last = log -1 HEAD
+
+	# Pretty log
+	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+
+	# Show all aliases
+	aliases = config --get-regexp alias
+[color]
+	ui = auto
+
+[color "branch"]
+	current = yellow reverse
+	local = yellow
+	remote = green
+
+[color "diff"]
+	meta = yellow bold
+	frag = magenta bold
+	old = red bold
+	new = green bold
+
+[color "status"]
+	added = yellow
+	changed = green
+	untracked = cyan
+
+# Include local config if it exists (for user-specific settings)
+[include]
+	path = ~/.config/git/config.local

@@ -1,0 +1,66 @@
+##############
+# Appearance #
+##############
+# Background
+background-blur-radius = 30
+background-opacity = 0.8
+unfocused-split-opacity = 0.8
+# Color scheme
+theme = Catppuccin Mocha
+# Cursor
+cursor-style = block
+cursor-style-blink = false
+# Font configuration
+font-family = JetBrains Mono
+# font-family = JetBrainsMono Nerd Font
+font-size = 14
+# Window
+maximize = true
+window-decoration = true
+window-padding-x = 20
+window-padding-y = 0
+window-theme = auto
+window-height = 54
+window-width = 193
+
+############
+# Keyboard #
+############
+# Use Option/Alt as Meta
+macos-option-as-alt = true
+# Keybindings
+# Toggle quick terminal
+keybind = global:super+shift+grave_accent=toggle_quick_terminal
+# Navigating tabs
+keybind = super+right=next_tab
+keybind = super+left=previous_tab
+# New line with Shift+Enter
+keybind = shift+enter=text:\x1b\r
+
+#########
+# Mouse #
+#########
+# Hide mouse cursor while typing
+mouse-hide-while-typing = true
+
+##################
+# Shell settings #
+##################
+# Shell integration
+shell-integration = detect
+shell-integration-features = no-cursor,sudo,title,ssh-env,ssh-terminfo,path
+# Quick terminal settings
+quick-terminal-position = bottom
+quick-terminal-screen = mouse
+quick-terminal-space-behavior = remain
+# Scrollback
+scrollback-limit = 100000000
+# Working directory
+working-directory = home
+window-inherit-working-directory = false
+
+##########
+# Update #
+##########
+auto-update = download
+auto-update-channel = stable

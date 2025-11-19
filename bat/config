@@ -1,0 +1,27 @@
+# ==============================================================================
+# Bat (cat replacement) Configuration
+# ==============================================================================
+# Docs: https://github.com/sharkdp/bat
+
+# Set theme (run `bat --list-themes` to see options)
+# Popular themes: Catppuccin, Monokai Extended, Nord, Dracula, gruvbox-dark
+# Using renamed theme (dash added) because of stow non handling filenames with spaces in the name
+--theme="Catppuccin-Mocha"
+
+# Show colors
+--color=always
+
+# Show line numbers and Git modifications
+# --style="numbers,changes,header,grid"
+
+# Use italic text on the terminal (not supported on all terminals)
+# --italic-text=always
+
+# Show non-printable characters like space, tab, newline
+# --show-all
+
+# Uncomment to disable paging (always print to stdout)
+# --paging=never
+
+# Set custom pager (default is 'less')
+--pager="less -RF"
