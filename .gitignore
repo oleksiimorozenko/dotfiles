@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# Local machine-specific configs
+*/local/.zshrc.local
+local/
+
+# Vim swap files
+*.swp
+*.swo
+*~
+
+# Secrets (paranoid mode)
+**/credentials*
+**/secrets*
+*.key
+*.pem
+
+# Stow test files
+test-*/

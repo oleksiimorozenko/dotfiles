@@ -1,0 +1,24 @@
+# ==============================================================================
+# GNU Stow Configuration for Dotfiles
+# ==============================================================================
+# Default target directory (most configs use XDG_CONFIG_HOME)
+--target=~/.config
+
+# Ignore patterns (won't be symlinked)
+--ignore=\.stowrc
+--ignore=\.git
+--ignore=\.gitignore
+--ignore=\.DS_Store
+--ignore=Makefile
+--ignore=Brewfile
+--ignore=LICENSE
+--ignore=README\.md
+--ignore=.*\.example$
+--ignore=local/
+--ignore=macos/
+
+# Verbose output (comment out for quiet mode)
+--verbose
+
+# Don't fold symlinks (keep directory structure intact)
+--no-folding
