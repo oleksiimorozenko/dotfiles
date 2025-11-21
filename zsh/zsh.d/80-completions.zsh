@@ -5,6 +5,9 @@
 # Show hidden files and special directories (., ..) in completions
 zstyle ':completion:*' special-dirs true
 
+# Show dotfiles in completion without requiring a leading dot
+_comp_options+=(globdots)
+
 # Only run completions if the completion system is loaded
 if (( $+functions[compdef] )); then
   # Packer (if installed)
