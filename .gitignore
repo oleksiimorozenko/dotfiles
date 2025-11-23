@@ -2,7 +2,7 @@
 .DS_Store
 
 # Local machine-specific configs
-*/local/.zshrc.local
+*/local/local.zsh
 local/
 
 # Vim swap files

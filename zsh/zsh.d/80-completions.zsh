@@ -25,4 +25,9 @@ if (( $+functions[compdef] )); then
   if command -v uvx &> /dev/null; then
     eval "$(uvx --generate-shell-completion zsh)"
   fi
+
+  # awsom (if installed)
+  if command -v awsom &> /dev/null; then
+    eval "$(awsom completions zsh)"
+  fi
 fi

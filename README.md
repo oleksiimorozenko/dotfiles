@@ -348,7 +348,7 @@ Create machine-specific configurations that won't be committed:
 
 **ZSH:**
 ```bash
-~/.config/zsh/local/.zshrc.local
+~/.config/zsh/local/local.zsh
 ```
 
 **Git:**

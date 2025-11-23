@@ -190,7 +190,7 @@ install:
 	@echo "Next steps:"
 	@echo "  1. Start tmux and press Ctrl-a + I to install plugins"
 	@echo "  2. Reload shell: exec zsh"
-	@echo "  3. Edit local config: vim ~/.config/zsh/local/.zshrc.local"
+	@echo "  3. Edit local config: vim ~/.config/zsh/local/local.zsh"
 #  2>/dev/null || true
 uninstall:
 	@echo "Removing dotfiles..."

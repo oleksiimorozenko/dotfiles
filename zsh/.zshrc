@@ -9,4 +9,4 @@ for config in $ZDOTDIR/zsh.d/*.zsh; do
 done
 
 # Load local overrides if they exist (work-specific, AWS, etc.)
-[[ -f $ZDOTDIR/local/.zshrc.local ]] && source $ZDOTDIR/local/.zshrc.local
+[[ -f $ZDOTDIR/local/local.zsh ]] && source $ZDOTDIR/local/local.zsh

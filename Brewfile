@@ -125,6 +125,12 @@ brew "argocd"                  # GitOps CD for Kubernetes
 brew "chart-testing"           # Helm chart testing and linting
 
 # ------------------------------------------------------------------------------
+# AWS
+# ------------------------------------------------------------------------------
+tap "oleksiimorozenko/tap"
+brew "oleksiimorozenko/tap/awsom"  # k9s-like TUI for AWS SSO
+
+# ------------------------------------------------------------------------------
 # Containers & VMs
 # ------------------------------------------------------------------------------
 brew "dive"                    # Explore Docker image layers
