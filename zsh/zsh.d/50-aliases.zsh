@@ -28,7 +28,8 @@ alias reload="source $ZDOTDIR/.zshrc"
 alias zshconfig="${EDITOR:-vim} $ZDOTDIR/.zshrc"
 
 # Network tools
-alias whois='echo "Using rdap instead"; rdap'
+# Comented out because of frequent error like Error: No RDAP servers found for domain ....
+# alias whois='echo "Using rdap instead"; rdap'
 
 # Platform-specific aliases
 if [[ "$DOTFILES_OS" == "macos" ]]; then
