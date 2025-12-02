@@ -153,6 +153,9 @@ brew "cowsay"                  # Configurable talking cow
 # Terminal
 cask "ghostty"                 # GPU-accelerated terminal
 
+# AI Assistant Tools
+cask "claude-code"             # Terminal-based AI coding assistant
+
 # Databases
 cask "medis"                   # Modern Redis GUI
 
