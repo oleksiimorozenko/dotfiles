@@ -9,6 +9,9 @@ export MANPATH="/usr/local/man:$MANPATH"
 export PATH=$HOME/bin:/usr/local/bin:$PATH
 export PATH=$HOME/.local/bin:$PATH
 
+# Tmux session scripts
+export PATH="$XDG_CONFIG_HOME/tmux/bin:$PATH"
+
 # Homebrew (macOS only)
 # Sets up PATH, FPATH (for completions), MANPATH, and INFOPATH
 if [[ "$OSTYPE" == "darwin"* ]]; then

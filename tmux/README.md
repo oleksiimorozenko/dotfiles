@@ -263,6 +263,90 @@ set -ag status-right "#{E:@catppuccin_status_date_time}"
 
 ---
 
+## Session Management Scripts
+
+Shell scripts for managing tmux sessions with predefined layouts. Located in `bin/` subdirectory.
+
+### Available Scripts
+
+**tmux-init** - Initial daily session (AWS workspace)
+- Window 1: awsom (80%) + awsgm pre-filled (20%)
+- Window 2: k9s pre-filled
+- Window 3: shell in ~/code/dotfiles
+
+**tmux-init-fresh** - Fresh init session
+- Kills existing session
+- Clears tmux-resurrect state
+- Launches new session
+
+### Usage
+
+```bash
+# Launch init session
+tmux-init           # Full command
+tsi                 # Alias
+
+# Fresh session (clears resurrect)
+tmux-init-fresh     # Full command
+tsi-fresh           # Alias
+
+# Attach to existing
+tmux attach -t init
+tsi-attach          # Alias
+
+# List all sessions (from omz tmux plugin)
+tmux ls
+tl                  # Alias
+```
+
+### Creating Custom Sessions
+
+Copy and modify existing scripts in `~/.config/tmux/bin/`:
+
+```bash
+# Copy template
+cp ~/.config/tmux/bin/tmux-init ~/.config/tmux/bin/tmux-dev
+
+# Edit for your needs
+vim ~/.config/tmux/bin/tmux-dev
+
+# Make executable
+chmod +x ~/.config/tmux/bin/tmux-dev
+
+# Add alias in zsh/zsh.d/70-app-settings.zsh
+alias tsdev='tmux-dev'
+```
+
+### Script Patterns
+
+**Pre-filled command (no auto-execute):**
+```bash
+tmux send-keys -t "$SESSION:2" "k9s"  # No C-m = waits for Enter
+```
+
+**Execute command immediately:**
+```bash
+tmux send-keys -t "$SESSION:1" "awsom" C-m  # C-m = executes now
+```
+
+**Pane splits:**
+```bash
+# Horizontal split (left/right), right pane 30%
+tmux split-window -h -p 30
+
+# Vertical split (top/bottom), bottom pane 20%
+tmux split-window -v -p 20
+```
+
+**Select panes:**
+```bash
+# Panes are numbered: SESSION:WINDOW.PANE
+tmux select-pane -t init:1.1  # Window 1, pane 1 (with base-index 1)
+tmux select-pane -t init:1.2  # Window 1, pane 2
+```
+
+---
+
 ## Troubleshooting
 
 ### Plugins not loading

@@ -340,6 +340,53 @@ q               # Exit copy mode
 
 📖 **See [tmux/README.md](tmux/README.md) for complete keybinding reference**
 
+### Tmux Session Management
+
+**Shell-based session scripts** for predefined tmux layouts. No external dependencies beyond tmux itself.
+
+Location: `tmux/bin/` (stowed to `~/.config/tmux/bin/`)
+
+**Quick Start:**
+```bash
+# Launch init session
+tsi                 # Alias
+tmux-init           # Full command
+
+# Fresh session (clears resurrect state)
+tsi-fresh           # Alias
+tmux-init-fresh     # Full command
+
+# Attach to existing session
+tsi-attach
+
+# List all sessions (from omz tmux plugin)
+tl
+```
+
+**Init Session Layout:**
+- Window 1: awsom running (top 80%), awsgm pre-filled (bottom 20%)
+- Window 2: k9s pre-filled, ready to run
+- Window 3: shell in ~/code/dotfiles
+
+**Custom Sessions:**
+Create new scripts in `~/.config/tmux/bin/` using the existing `tmux-init` as a template:
+
+```bash
+# Copy template
+cp ~/.config/tmux/bin/tmux-init ~/.config/tmux/bin/tmux-dev
+
+# Edit for your needs
+vim ~/.config/tmux/bin/tmux-dev
+
+# Make executable
+chmod +x ~/.config/tmux/bin/tmux-dev
+
+# Add alias in zsh/zsh.d/70-app-settings.zsh
+alias tsdev='tmux-dev'
+```
+
+📖 **See [tmux/README.md](tmux/README.md) for complete documentation and script patterns**
+
 ## Customization
 
 ### Local Overrides

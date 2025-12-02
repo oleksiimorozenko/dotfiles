@@ -12,10 +12,12 @@
 --ignore=Makefile
 --ignore=Brewfile
 --ignore=LICENSE
---ignore=README\.md
+--ignore=.*-backup-.*\.txt$
+--ignore=.*\.md$
 --ignore=.*\.example$
 --ignore=local/
 --ignore=macos/
+--ignore=\.claude
 
 # Verbose output (comment out for quiet mode)
 --verbose

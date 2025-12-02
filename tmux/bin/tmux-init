@@ -1,0 +1,53 @@
+#!/usr/bin/env zsh
+# Tmux init session - AWS workspace with awsom, k9s, and awsgm
+
+SESSION="init"
+
+# Check if session already exists
+tmux has-session -t "$SESSION" 2>/dev/null
+if [ $? -eq 0 ]; then
+  echo "Session '$SESSION' already exists. Attach with: tmux attach -t $SESSION"
+  echo "Or kill it first with: tmux kill-session -t $SESSION"
+  exit 1
+fi
+
+# Create new detached session
+tmux new-session -d -s "$SESSION" -c ~
+
+# Window 1: awsom + awsgm (80/20 split)
+tmux rename-window -t "$SESSION:1" "awsom"
+
+# Start awsom in top pane
+if command -v awsom > /dev/null 2>&1; then
+  tmux send-keys -t "$SESSION:1" "awsom" C-m
+else
+  tmux send-keys -t "$SESSION:1" "echo 'Error: awsom not installed (brew install oleksiimorozenko/tap/awsom)'" C-m
+fi
+
+# Split horizontally (20% for bottom pane = 80% top pane)
+tmux split-window -t "$SESSION:1" -v -p 20 -c ~
+
+# Wait for pane to be ready
+sleep 0.2
+
+# Pre-fill awsgm command in bottom pane (pane 2 with base-index 1)
+tmux send-keys -t "$SESSION:1.2" "awsgm"  # No C-m = pre-filled!
+
+# Select top pane (awsom) as active (pane 1 with base-index 1)
+tmux select-pane -t "$SESSION:1.1"
+
+# Window 2: k9s (pre-filled)
+tmux new-window -t "$SESSION:2" -n "k9s" -c ~
+sleep 0.1
+tmux send-keys -t "$SESSION:2" "k9s"  # Pre-filled, not executed
+
+# Window 3: dotfiles directory
+tmux new-window -t "$SESSION:3" -n "dotfiles" -c ~/code/dotfiles
+sleep 0.1
+tmux send-keys -t "$SESSION:3" "clear" C-m
+
+# Select first window as starting point
+tmux select-window -t "$SESSION:1"
+
+# Attach to session
+tmux attach-session -t "$SESSION"
