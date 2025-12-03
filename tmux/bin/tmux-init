@@ -41,8 +41,8 @@ tmux new-window -t "$SESSION:2" -n "k9s" -c ~
 sleep 0.1
 tmux send-keys -t "$SESSION:2" "k9s"  # Pre-filled, not executed
 
-# Window 3: dotfiles directory
-tmux new-window -t "$SESSION:3" -n "dotfiles" -c ~/code/dotfiles
+# Window 3: code directory
+tmux new-window -t "$SESSION:3" -n "code" -c ~/code
 sleep 0.1
 tmux send-keys -t "$SESSION:3" "clear" C-m
 
