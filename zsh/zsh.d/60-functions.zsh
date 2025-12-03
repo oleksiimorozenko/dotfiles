@@ -68,7 +68,7 @@ awsgm() {
     echo "Starting morning authentication routine..."
 
     # Check if SSO session is active, start if needed
-    if ! awsom session status --session-name "$session_name" --json 2>/dev/null | grep -q '"active":true'; then
+    if ! awsom session status --session-name "$session_name" --json | grep -q '"active":true'; then
         echo "SSO session not active, logging in..."
         awsom session login --session-name "$session_name"
 
@@ -77,7 +77,7 @@ awsgm() {
         local max_attempts=10
         local attempt=1
         while [ $attempt -le $max_attempts ]; do
-            if awsom session status --session-name "$session_name" --json 2>/dev/null | grep -q '"active":true'; then
+            if awsom session status --session-name "$session_name" --json | grep -q '"active":true'; then
                 echo "Session ready!"
                 break
             fi
