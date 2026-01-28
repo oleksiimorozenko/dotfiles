@@ -192,10 +192,9 @@ style = "peach"
 format = "[$symbol($profile )(\\($region\\) )]($style)"
 expiration_symbol = "exp "
 
-# AWS Profile display - shows "(none)" when not set
+# AWS Profile display - only shows when AWS_PROFILE is set
 [env_var.AWS_PROFILE]
 variable = "AWS_PROFILE"
-default = "(none)"
 symbol = "\\[aws\\]:"
 format = "[$symbol($env_value)]($style) "
 style = "peach bold"
