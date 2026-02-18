@@ -131,6 +131,13 @@ tap "oleksiimorozenko/tap"
 brew "oleksiimorozenko/tap/awsom"  # k9s-like TUI for AWS SSO
 
 # ------------------------------------------------------------------------------
+# Azure
+# ------------------------------------------------------------------------------
+brew "azure-cli"               # Azure command-line interface
+tap "Azure/kubelogin"
+brew "Azure/kubelogin/kubelogin"  # Kubernetes login for Azure
+
+# ------------------------------------------------------------------------------
 # Containers & VMs
 # ------------------------------------------------------------------------------
 brew "dive"                    # Explore Docker image layers
