@@ -27,7 +27,7 @@ azgm() {
 
     # Azure login (opens browser for MFA)
     echo "Logging in to Azure tenant $tenant_id..."
-    if ! az login --tenant "$tenant_id"; then
+    if ! AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" --allow-no-subscriptions; then
         echo "Error: Azure login failed"
         return 1
     fi
@@ -54,32 +54,41 @@ azgm() {
 
         echo "--- $sub_name ($sub_id) ---"
 
+        # Fetch eligible assignments for this subscription (works without subscription access)
+        local eligible_assignments
+        eligible_assignments=$(az rest --method GET \
+            --url "https://management.azure.com/subscriptions/$sub_id/providers/Microsoft.Authorization/roleEligibilityScheduleInstances?\$filter=asTarget()&api-version=2020-10-01" \
+            2>/dev/null)
+
+        if [[ -z "$eligible_assignments" ]]; then
+            echo "  Warning: Could not fetch eligible assignments"
+        fi
+
+        # Fetch active assignments for deactivation checks
+        local active_assignments
+        active_assignments=$(az rest --method GET \
+            --url "https://management.azure.com/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleInstances?\$filter=asTarget()&api-version=2020-10-01" \
+            2>/dev/null)
+
         for (( r=0; r<role_count; r++ )); do
             local role_name role_def_id
             role_name=$(yq -r ".subscriptions[$s].roles[$r]" "$config_file")
 
             echo "  Role: $role_name"
 
-            # Look up role definition ID
-            role_def_id=$(az role definition list \
-                --custom-role-only true \
-                --name "$role_name" \
-                --subscription "$sub_id" \
-                --query "[0].name" -o tsv 2>/dev/null)
+            # Look up role definition ID from eligible assignments
+            role_def_id=$(echo "$eligible_assignments" | jq -r \
+                --arg name "$role_name" \
+                '[.value[] | select(.properties.expandedProperties.roleDefinition.displayName == $name)] | first | .properties.expandedProperties.roleDefinition.id // empty')
 
             if [[ -z "$role_def_id" ]]; then
-                echo "    Error: Could not find role definition for '$role_name'"
-                ((failed++))
+                echo "    Error: No eligible assignment found for '$role_name'"
+                echo "    (Check the role name matches exactly in Azure)"
+                failed=$((failed + 1))
                 continue
             fi
 
             # Check for existing active assignment
-            local filter="asTarget()"
-            local active_assignments
-            active_assignments=$(az rest --method GET \
-                --url "https://management.azure.com/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleInstances?\$filter=${filter}&api-version=2020-10-01" \
-                2>/dev/null)
-
             local existing
             existing=$(echo "$active_assignments" | jq -r \
                 --arg rd "/subscriptions/$sub_id/providers/Microsoft.Authorization/roleDefinitions/$role_def_id" \
@@ -151,10 +160,10 @@ azgm() {
                 --url "https://management.azure.com/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$activate_guid?api-version=2020-10-01" \
                 --body "@$activate_tmp" > /dev/null 2>&1; then
                 echo "    Activated ($duration)"
-                ((activated++))
+                activated=$((activated + 1))
             else
                 echo "    Error: Activation failed"
-                ((failed++))
+                failed=$((failed + 1))
             fi
             rm -f "$activate_tmp"
         done
@@ -182,22 +191,17 @@ _azvm_init_state() {
 # Remove entries whose PIDs are no longer alive
 _azvm_cleanup() {
     _azvm_init_state
-    local cleaned
-    cleaned=$(jq '[.[] | select(.pid as $p | $p | tostring | gsub("[^0-9]"; "") | tonumber | . > 0)]' "$_azvm_state_file")
-
     local result='[]'
     local count
-    count=$(echo "$cleaned" | jq 'length')
+    count=$(jq 'length' "$_azvm_state_file")
     for (( i=0; i<count; i++ )); do
         local pid
-        pid=$(echo "$cleaned" | jq -r ".[$i].pid")
+        pid=$(jq -r ".[$i].pid" "$_azvm_state_file")
         if kill -0 "$pid" 2>/dev/null; then
-            result=$(echo "$result" | jq --argjson entry "$(echo "$cleaned" | jq ".[$i]")" '. + [$entry]')
+            result=$(echo "$result" | jq --argjson entry "$(jq ".[$i]" "$_azvm_state_file")" '. + [$entry]')
         fi
     done
-
-    local tmp_file="${_azvm_state_file}.tmp"
-    echo "$result" > "$tmp_file" && mv "$tmp_file" "$_azvm_state_file"
+    _azvm_write_state "$result"
 }
 
 # Write state atomically
