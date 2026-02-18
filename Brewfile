@@ -41,6 +41,7 @@ brew "fzf"                     # Fuzzy finder
 # ------------------------------------------------------------------------------
 brew "git"                     # Version control
 brew "git-delta"               # Syntax-highlighting pager for git
+cask "git-credential-manager"  # Git Credential Manager for secure authentication
 brew "gh"                      # GitHub CLI
 brew "gitleaks"                # Audit git repos for secrets
 brew "act"                     # Run GitHub Actions locally
@@ -105,7 +106,7 @@ brew "rustup"                  # Rust toolchain installer
 brew "ansible"                 # Configuration management
 
 # Terraform ecosystem
-# brew "terraform"             # Infrastructure as Code
+brew "hashicorp/tap/terraform" # Infrastructure as Code
 # brew "terragrunt"            # Terraform wrapper
 brew "tflint"                  # Terraform linter
 brew "tfsec"                   # Terraform security scanner
@@ -174,7 +175,7 @@ cask "openlens"                # Kubernetes IDE
 # cask "google-chrome"
 
 # Editors
-# cask "visual-studio-code"
+cask "visual-studio-code"
 
 # Productivity
 # cask "rectangle"             # Window management
