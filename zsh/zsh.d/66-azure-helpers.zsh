@@ -42,6 +42,16 @@ azgm() {
     echo "Principal ID: $principal_id"
     echo ""
 
+    # Get management API token explicitly scoped to our tenant
+    local mgmt_token
+    mgmt_token=$(az account get-access-token --tenant "$tenant_id" --resource "https://management.azure.com" --query accessToken -o tsv)
+    if [[ -z "$mgmt_token" ]]; then
+        echo "Error: Could not acquire management API token for tenant $tenant_id"
+        return 1
+    fi
+
+    local arm_base="https://management.azure.com"
+
     # Iterate subscriptions and roles
     local sub_count role_count activated=0 failed=0
     sub_count=$(yq -r '.subscriptions | length' "$config_file")
@@ -54,21 +64,20 @@ azgm() {
 
         echo "--- $sub_name ($sub_id) ---"
 
-        # Fetch eligible assignments for this subscription (works without subscription access)
-        local eligible_assignments
-        eligible_assignments=$(az rest --method GET \
-            --url "https://management.azure.com/subscriptions/$sub_id/providers/Microsoft.Authorization/roleEligibilityScheduleInstances?\$filter=asTarget()&api-version=2020-10-01" \
-            2>/dev/null)
+        # Fetch eligible assignments for this subscription
+        local eligible_assignments eligible_url
+        eligible_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleEligibilityScheduleInstances?\$filter=asTarget()&api-version=2020-10-01"
+        eligible_assignments=$(curl -s -H "Authorization: Bearer $mgmt_token" "$eligible_url")
 
-        if [[ -z "$eligible_assignments" ]]; then
+        if [[ -z "$eligible_assignments" ]] || echo "$eligible_assignments" | jq -e '.error' &>/dev/null; then
             echo "  Warning: Could not fetch eligible assignments"
+            echo "  $(echo "$eligible_assignments" | jq -r '.error.message // empty')"
         fi
 
         # Fetch active assignments for deactivation checks
-        local active_assignments
-        active_assignments=$(az rest --method GET \
-            --url "https://management.azure.com/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleInstances?\$filter=asTarget()&api-version=2020-10-01" \
-            2>/dev/null)
+        local active_assignments active_url
+        active_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleInstances?\$filter=asTarget()&api-version=2020-10-01"
+        active_assignments=$(curl -s -H "Authorization: Bearer $mgmt_token" "$active_url")
 
         for (( r=0; r<role_count; r++ )); do
             local role_name role_def_id
@@ -101,7 +110,7 @@ azgm() {
                 echo "    Currently active (since $start_time), deactivating..."
 
                 # Deactivate existing assignment
-                local deactivate_guid deactivate_body
+                local deactivate_guid deactivate_body deactivate_tmp deactivate_url
                 deactivate_guid=$(uuidgen | tr '[:upper:]' '[:lower:]')
                 deactivate_body=$(jq -n \
                     --arg pid "$principal_id" \
@@ -116,20 +125,24 @@ azgm() {
                         }
                     }')
 
-                local deactivate_tmp
                 deactivate_tmp=$(mktemp)
                 echo "$deactivate_body" > "$deactivate_tmp"
+                deactivate_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$deactivate_guid?api-version=2020-10-01"
 
-                if ! az rest --method PUT \
-                    --url "https://management.azure.com/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$deactivate_guid?api-version=2020-10-01" \
-                    --body "@$deactivate_tmp" 2>/dev/null; then
+                local deactivate_resp
+                deactivate_resp=$(curl -s -X PUT \
+                    -H "Authorization: Bearer $mgmt_token" \
+                    -H "Content-Type: application/json" \
+                    -d "@$deactivate_tmp" "$deactivate_url")
+                rm -f "$deactivate_tmp"
+
+                if echo "$deactivate_resp" | jq -e '.error' &>/dev/null; then
                     echo "    Warning: Deactivation failed, attempting fresh activation anyway..."
                 fi
-                rm -f "$deactivate_tmp"
             fi
 
             # Activate fresh
-            local activate_guid activate_body
+            local activate_guid activate_body activate_tmp activate_url
             activate_guid=$(uuidgen | tr '[:upper:]' '[:lower:]')
             activate_body=$(jq -n \
                 --arg pid "$principal_id" \
@@ -152,20 +165,25 @@ azgm() {
                     }
                 }')
 
-            local activate_tmp
             activate_tmp=$(mktemp)
             echo "$activate_body" > "$activate_tmp"
+            activate_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$activate_guid?api-version=2020-10-01"
 
-            if az rest --method PUT \
-                --url "https://management.azure.com/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$activate_guid?api-version=2020-10-01" \
-                --body "@$activate_tmp" > /dev/null 2>&1; then
+            local activate_resp
+            activate_resp=$(curl -s -X PUT \
+                -H "Authorization: Bearer $mgmt_token" \
+                -H "Content-Type: application/json" \
+                -d "@$activate_tmp" "$activate_url")
+            rm -f "$activate_tmp"
+
+            if echo "$activate_resp" | jq -e '.error' &>/dev/null; then
+                echo "    Error: Activation failed"
+                echo "    $(echo "$activate_resp" | jq -r '.error.message // empty')"
+                failed=$((failed + 1))
+            else
                 echo "    Activated ($duration)"
                 activated=$((activated + 1))
-            else
-                echo "    Error: Activation failed"
-                failed=$((failed + 1))
             fi
-            rm -f "$activate_tmp"
         done
         echo ""
     done
