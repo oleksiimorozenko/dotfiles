@@ -25,6 +25,14 @@ azgm() {
     reason=$(yq -r '.reason' "$config_file")
     duration=$(yq -r '.duration' "$config_file")
 
+    # Validate no more than one default subscription
+    local default_count
+    default_count=$(yq '[.subscriptions[] | select(.default == true)] | length' "$config_file")
+    if [[ "$default_count" -gt 1 ]]; then
+        echo "Error: Multiple subscriptions marked as default in $config_file"
+        return 1
+    fi
+
     # Azure login (opens browser for MFA)
     echo "Logging in to Azure tenant $tenant_id..."
     if ! AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" --allow-no-subscriptions; then
@@ -189,6 +197,19 @@ azgm() {
     done
 
     echo "Done: $activated activated, $failed failed"
+
+    # Refresh account list now that PIM roles are active (subscriptions should appear)
+    echo ""
+    echo "Refreshing subscription list..."
+    AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" --only-show-errors > /dev/null 2>&1
+
+    # Set default subscription if configured
+    local default_sub_id
+    default_sub_id=$(yq -r '.subscriptions[] | select(.default == true) | .id' "$config_file")
+    if [[ -n "$default_sub_id" ]]; then
+        az account set --subscription "$default_sub_id" 2>/dev/null
+        echo "Default subscription set to: $default_sub_id"
+    fi
 }
 
 # ==============================================================================
