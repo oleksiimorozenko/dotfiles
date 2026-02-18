@@ -82,11 +82,6 @@ azgm() {
             echo "  $(echo "$eligible_assignments" | jq -r '.error.message // empty')"
         fi
 
-        # Fetch active assignments for deactivation checks
-        local active_assignments active_url
-        active_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleInstances?\$filter=asTarget()&api-version=2020-10-01"
-        active_assignments=$(curl -s -H "Authorization: Bearer $mgmt_token" "$active_url")
-
         for (( r=0; r<role_count; r++ )); do
             local role_name role_def_id
             role_name=$(yq -r ".subscriptions[$s].roles[$r]" "$config_file")
@@ -105,49 +100,33 @@ azgm() {
                 continue
             fi
 
-            # Check for existing active assignment
-            local existing
-            existing=$(echo "$active_assignments" | jq -r \
-                --arg rd "/subscriptions/$sub_id/providers/Microsoft.Authorization/roleDefinitions/$role_def_id" \
+            # Always deactivate first to ensure a fresh activation window
+            echo "    Deactivating (if active)..."
+            local deactivate_guid deactivate_body deactivate_tmp deactivate_url
+            deactivate_guid=$(uuidgen | tr '[:upper:]' '[:lower:]')
+            deactivate_body=$(jq -n \
                 --arg pid "$principal_id" \
-                '[.value[] | select(.properties.roleDefinitionId == $rd and .properties.principalId == $pid)] | first // empty')
+                --arg rdid "/subscriptions/$sub_id/providers/Microsoft.Authorization/roleDefinitions/$role_def_id" \
+                --arg reason "$reason" \
+                '{
+                    "Properties": {
+                        "PrincipalId": $pid,
+                        "RoleDefinitionId": $rdid,
+                        "RequestType": "SelfDeactivate",
+                        "Justification": $reason
+                    }
+                }')
 
-            if [[ -n "$existing" ]]; then
-                local start_time
-                start_time=$(echo "$existing" | jq -r '.properties.startDateTime // "unknown"')
-                echo "    Currently active (since $start_time), deactivating..."
+            deactivate_tmp=$(mktemp)
+            echo "$deactivate_body" > "$deactivate_tmp"
+            deactivate_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$deactivate_guid?api-version=2020-10-01"
 
-                # Deactivate existing assignment
-                local deactivate_guid deactivate_body deactivate_tmp deactivate_url
-                deactivate_guid=$(uuidgen | tr '[:upper:]' '[:lower:]')
-                deactivate_body=$(jq -n \
-                    --arg pid "$principal_id" \
-                    --arg rdid "/subscriptions/$sub_id/providers/Microsoft.Authorization/roleDefinitions/$role_def_id" \
-                    --arg reason "$reason" \
-                    '{
-                        "Properties": {
-                            "PrincipalId": $pid,
-                            "RoleDefinitionId": $rdid,
-                            "RequestType": "SelfDeactivate",
-                            "Justification": $reason
-                        }
-                    }')
-
-                deactivate_tmp=$(mktemp)
-                echo "$deactivate_body" > "$deactivate_tmp"
-                deactivate_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$deactivate_guid?api-version=2020-10-01"
-
-                local deactivate_resp
-                deactivate_resp=$(curl -s -X PUT \
-                    -H "Authorization: Bearer $mgmt_token" \
-                    -H "Content-Type: application/json" \
-                    -d "@$deactivate_tmp" "$deactivate_url")
-                rm -f "$deactivate_tmp"
-
-                if echo "$deactivate_resp" | jq -e '.error' &>/dev/null; then
-                    echo "    Warning: Deactivation failed, attempting fresh activation anyway..."
-                fi
-            fi
+            local deactivate_resp
+            deactivate_resp=$(curl -s -X PUT \
+                -H "Authorization: Bearer $mgmt_token" \
+                -H "Content-Type: application/json" \
+                -d "@$deactivate_tmp" "$deactivate_url")
+            rm -f "$deactivate_tmp"
 
             # Activate fresh
             local activate_guid activate_body activate_tmp activate_url
@@ -201,6 +180,7 @@ azgm() {
     # Refresh account list now that PIM roles are active (subscriptions should appear)
     echo ""
     echo "Refreshing subscription list..."
+    az account clear 2>/dev/null
     AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" --only-show-errors > /dev/null 2>&1
 
     # Set default subscription if configured
