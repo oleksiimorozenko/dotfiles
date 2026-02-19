@@ -206,15 +206,32 @@ azgm() {
 
     echo "Done: $activated activated, $failed failed"
 
-    # Refresh subscription list now that PIM roles are active
+    # Refresh subscription list — PIM propagation can take a few seconds
     echo ""
     echo "Refreshing subscription list..."
-    az account list --refresh --only-show-errors > /dev/null 2>&1
+    local refresh_attempt=0
+    local sub_found=0
+    while [[ $refresh_attempt -lt 6 ]]; do
+        az account list --refresh --only-show-errors > /dev/null 2>&1
+        local visible_subs
+        visible_subs=$(az account list --query "length([?tenantId=='$tenant_id' && name!='N/A(tenant level account)'])" -o tsv 2>/dev/null)
+        if [[ "$visible_subs" -gt 0 ]]; then
+            sub_found=1
+            break
+        fi
+        echo "  Waiting for subscriptions to appear..."
+        sleep 5
+        refresh_attempt=$((refresh_attempt + 1))
+    done
+    if [[ "$sub_found" -eq 0 ]]; then
+        echo "  Warning: Subscriptions not yet visible (PIM may still be propagating)"
+        echo "  Try: az account list --refresh"
+    fi
 
     # Set default subscription if configured
     local default_sub_id
     default_sub_id=$(yq -r '.subscriptions[] | select(.default == true) | .id' "$config_file")
-    if [[ -n "$default_sub_id" ]]; then
+    if [[ -n "$default_sub_id" && "$sub_found" -eq 1 ]]; then
         az account set --subscription "$default_sub_id" 2>/dev/null
         echo "Default subscription set to: $default_sub_id"
     fi
@@ -343,10 +360,6 @@ _azvm_connect() {
 
     # Check if VM is running, start if needed
     echo "Checking VM power state..."
-    local vm_name_from_id vm_rg_from_id
-    vm_name_from_id=$(echo "$resource_id" | grep -oP '[^/]+$')
-    vm_rg_from_id=$(echo "$resource_id" | grep -oP 'resourceGroups/\K[^/]+')
-
     local power_state
     power_state=$(az vm get-instance-view \
         --ids "$resource_id" \
@@ -379,6 +392,13 @@ _azvm_connect() {
         echo "VM is running"
     fi
 
+    # Check if local port is already in use
+    if nc -z localhost "$local_port" 2>/dev/null; then
+        echo "Error: Port $local_port is already in use"
+        echo "  Check: lsof -i :$local_port"
+        return 1
+    fi
+
     # Start bastion tunnel in background
     echo "Starting bastion tunnel to $selected on localhost:$local_port..."
     az network bastion tunnel \
@@ -390,10 +410,24 @@ _azvm_connect() {
     local tunnel_pid=$!
     disown
 
-    # Wait briefly to catch immediate failures
-    sleep 2
-    if ! kill -0 "$tunnel_pid" 2>/dev/null; then
-        echo "Error: Tunnel process died immediately (PID $tunnel_pid)"
+    # Wait for tunnel to be ready (port listening) or process to die
+    echo "  Waiting for tunnel to be ready..."
+    local tunnel_wait=0
+    while [[ $tunnel_wait -lt 30 ]]; do
+        if ! kill -0 "$tunnel_pid" 2>/dev/null; then
+            echo "Error: Tunnel process died (PID $tunnel_pid)"
+            return 1
+        fi
+        if nc -z localhost "$local_port" 2>/dev/null; then
+            echo "  Tunnel ready"
+            break
+        fi
+        sleep 2
+        tunnel_wait=$((tunnel_wait + 1))
+    done
+    if [[ $tunnel_wait -ge 30 ]]; then
+        echo "Error: Tunnel did not become ready within 60 seconds"
+        kill "$tunnel_pid" 2>/dev/null
         return 1
     fi
 
