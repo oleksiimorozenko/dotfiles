@@ -100,13 +100,15 @@ azgm() {
                 continue
             fi
 
-            # Always deactivate first to ensure a fresh activation window
+            # role_def_id is already the full ARM path from eligible assignments
+
+            # Deactivate first to ensure a fresh activation window
             echo "    Deactivating (if active)..."
             local deactivate_guid deactivate_body deactivate_tmp deactivate_url
             deactivate_guid=$(uuidgen | tr '[:upper:]' '[:lower:]')
             deactivate_body=$(jq -n \
                 --arg pid "$principal_id" \
-                --arg rdid "/subscriptions/$sub_id/providers/Microsoft.Authorization/roleDefinitions/$role_def_id" \
+                --arg rdid "$role_def_id" \
                 --arg reason "$reason" \
                 '{
                     "Properties": {
@@ -128,12 +130,39 @@ azgm() {
                 -d "@$deactivate_tmp" "$deactivate_url")
             rm -f "$deactivate_tmp"
 
+            if echo "$deactivate_resp" | jq -e '.error' &>/dev/null; then
+                echo "    Not active (skipping deactivation)"
+            else
+                # Wait for deactivation to complete before activating
+                echo "    Waiting for deactivation..."
+                local wait_attempt=0
+                local active_check_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleInstances?\$filter=asTarget()&api-version=2020-10-01"
+                while [[ $wait_attempt -lt 15 ]]; do
+                    sleep 2
+                    local active_check
+                    active_check=$(curl -s -H "Authorization: Bearer $mgmt_token" "$active_check_url")
+                    local still_active
+                    still_active=$(echo "$active_check" | jq -r \
+                        --arg rd "$role_def_id" \
+                        --arg pid "$principal_id" \
+                        '[.value[] | select(.properties.roleDefinitionId == $rd and .properties.principalId == $pid)] | length')
+                    if [[ "$still_active" == "0" ]]; then
+                        echo "    Deactivated"
+                        break
+                    fi
+                    wait_attempt=$((wait_attempt + 1))
+                done
+                if [[ $wait_attempt -ge 15 ]]; then
+                    echo "    Warning: Deactivation may not have completed (timed out after 30s)"
+                fi
+            fi
+
             # Activate fresh
             local activate_guid activate_body activate_tmp activate_url
             activate_guid=$(uuidgen | tr '[:upper:]' '[:lower:]')
             activate_body=$(jq -n \
                 --arg pid "$principal_id" \
-                --arg rdid "/subscriptions/$sub_id/providers/Microsoft.Authorization/roleDefinitions/$role_def_id" \
+                --arg rdid "$role_def_id" \
                 --arg reason "$reason" \
                 --arg duration "$duration" \
                 '{
@@ -177,11 +206,10 @@ azgm() {
 
     echo "Done: $activated activated, $failed failed"
 
-    # Refresh account list now that PIM roles are active (subscriptions should appear)
+    # Refresh subscription list now that PIM roles are active
     echo ""
     echo "Refreshing subscription list..."
-    az account clear 2>/dev/null
-    AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" --only-show-errors > /dev/null 2>&1
+    az account list --refresh --only-show-errors > /dev/null 2>&1
 
     # Set default subscription if configured
     local default_sub_id
@@ -311,6 +339,44 @@ _azvm_connect() {
     if [[ -n "$existing_pid" ]]; then
         echo "Tunnel already active for $selected (PID $existing_pid, port $local_port)"
         return 0
+    fi
+
+    # Check if VM is running, start if needed
+    echo "Checking VM power state..."
+    local vm_name_from_id vm_rg_from_id
+    vm_name_from_id=$(echo "$resource_id" | grep -oP '[^/]+$')
+    vm_rg_from_id=$(echo "$resource_id" | grep -oP 'resourceGroups/\K[^/]+')
+
+    local power_state
+    power_state=$(az vm get-instance-view \
+        --ids "$resource_id" \
+        --query "instanceView.statuses[?starts_with(code, 'PowerState/')].displayStatus | [0]" \
+        -o tsv 2>/dev/null)
+
+    if [[ "$power_state" != "VM running" ]]; then
+        echo "VM is $power_state — starting..."
+        az vm start --ids "$resource_id" --no-wait 2>/dev/null
+
+        local vm_wait=0
+        while [[ $vm_wait -lt 30 ]]; do
+            sleep 5
+            power_state=$(az vm get-instance-view \
+                --ids "$resource_id" \
+                --query "instanceView.statuses[?starts_with(code, 'PowerState/')].displayStatus | [0]" \
+                -o tsv 2>/dev/null)
+            if [[ "$power_state" == "VM running" ]]; then
+                echo "VM is running"
+                break
+            fi
+            echo "  Waiting for VM to start ($power_state)..."
+            vm_wait=$((vm_wait + 1))
+        done
+        if [[ "$power_state" != "VM running" ]]; then
+            echo "Error: VM did not start within 150 seconds"
+            return 1
+        fi
+    else
+        echo "VM is running"
     fi
 
     # Start bastion tunnel in background
