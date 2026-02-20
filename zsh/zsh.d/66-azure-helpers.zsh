@@ -232,8 +232,12 @@ azgm() {
     local default_sub_id
     default_sub_id=$(yq -r '.subscriptions[] | select(.default == true) | .id' "$config_file")
     if [[ -n "$default_sub_id" && "$sub_found" -eq 1 ]]; then
-        az account set --subscription "$default_sub_id" 2>/dev/null
-        echo "Default subscription set to: $default_sub_id"
+        if az account set --subscription "$default_sub_id"; then
+            echo "Default subscription set to: $default_sub_id"
+        else
+            echo "Warning: Could not set default subscription $default_sub_id"
+            echo "  Available: $(az account list --query '[].{name:name, id:id, isDefault:isDefault}' -o table 2>/dev/null)"
+        fi
     fi
 }
 
@@ -341,7 +345,8 @@ _azvm_connect() {
     fi
 
     # Read VM config
-    local resource_id bastion_name bastion_rg local_port resource_port username password
+    local vm_subscription resource_id bastion_name bastion_rg local_port resource_port username password
+    vm_subscription=$(yq -r ".vms[$vm_idx].subscription // \"\"" "$config_file")
     resource_id=$(yq -r ".vms[$vm_idx].resource_id" "$config_file")
     bastion_name=$(yq -r ".vms[$vm_idx].bastion_name" "$config_file")
     bastion_rg=$(yq -r ".vms[$vm_idx].bastion_rg" "$config_file")
@@ -349,6 +354,19 @@ _azvm_connect() {
     resource_port=$(yq -r ".vms[$vm_idx].resource_port // \"$default_resource_port\"" "$config_file")
     username=$(yq -r ".vms[$vm_idx].username // \"\"" "$config_file")
     password=$(yq -r ".vms[$vm_idx].password // \"\"" "$config_file")
+
+    # Resolve subscription name to ID for explicit --subscription on all az commands
+    local vm_sub_args=()
+    if [[ -n "$vm_subscription" ]]; then
+        local vm_sub_id
+        vm_sub_id=$(az account list --query "[?name=='$vm_subscription'].id | [0]" -o tsv 2>/dev/null)
+        if [[ -z "$vm_sub_id" ]]; then
+            echo "Error: Subscription '$vm_subscription' not found in az account list"
+            return 1
+        fi
+        vm_sub_args=(--subscription "$vm_sub_id")
+        echo "Using subscription: $vm_subscription"
+    fi
 
     # Check if tunnel already exists for this VM
     local existing_pid
@@ -362,19 +380,19 @@ _azvm_connect() {
     echo "Checking VM power state..."
     local power_state
     power_state=$(az vm get-instance-view \
-        --ids "$resource_id" \
+        --ids "$resource_id" "${vm_sub_args[@]}" \
         --query "instanceView.statuses[?starts_with(code, 'PowerState/')].displayStatus | [0]" \
         -o tsv 2>/dev/null)
 
     if [[ "$power_state" != "VM running" ]]; then
         echo "VM is $power_state — starting..."
-        az vm start --ids "$resource_id" --no-wait 2>/dev/null
+        az vm start --ids "$resource_id" "${vm_sub_args[@]}" --no-wait 2>/dev/null
 
         local vm_wait=0
         while [[ $vm_wait -lt 30 ]]; do
             sleep 5
             power_state=$(az vm get-instance-view \
-                --ids "$resource_id" \
+                --ids "$resource_id" "${vm_sub_args[@]}" \
                 --query "instanceView.statuses[?starts_with(code, 'PowerState/')].displayStatus | [0]" \
                 -o tsv 2>/dev/null)
             if [[ "$power_state" == "VM running" ]]; then
@@ -406,7 +424,8 @@ _azvm_connect() {
         --resource-group "$bastion_rg" \
         --target-resource-id "$resource_id" \
         --resource-port "$resource_port" \
-        --port "$local_port" &> /dev/null &
+        --port "$local_port" \
+        "${vm_sub_args[@]}" &> /dev/null &
     local tunnel_pid=$!
     disown
 
