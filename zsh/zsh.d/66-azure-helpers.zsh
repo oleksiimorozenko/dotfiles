@@ -1,9 +1,40 @@
 # ==============================================================================
 # Azure Helper Functions
 # ==============================================================================
+# Debug mode: set AZURE_DEBUG=1 or pass -d/--debug to azgm/azvm
+
+_az_debug=0
+
+_az_dbg() {
+    [[ "$_az_debug" -eq 1 ]] && echo "  [debug] $*"
+}
+
+# Wrapper: suppress stderr unless debug mode is on
+_az_run() {
+    if [[ "$_az_debug" -eq 1 ]]; then
+        "$@"
+    else
+        "$@" 2>/dev/null
+    fi
+}
+
+# Parse -d/--debug from args, return remaining args
+_az_parse_debug() {
+    _az_debug=0
+    [[ "$AZURE_DEBUG" == "1" ]] && _az_debug=1
+    local args=()
+    for arg in "$@"; do
+        case "$arg" in
+            -d|--debug) _az_debug=1 ;;
+            *) args+=("$arg") ;;
+        esac
+    done
+    _az_remaining_args=("${args[@]}")
+}
 
 # Azure Good Morning — activate PIM RBAC roles for the day
 azgm() {
+    _az_parse_debug "$@"
     local config_file="$HOME/.config/zsh/local/azgm.yaml"
 
     # Validate dependencies
@@ -42,7 +73,7 @@ azgm() {
 
     # Get principal ID
     local principal_id
-    principal_id=$(az ad signed-in-user show --query id -o tsv)
+    principal_id=$(_az_run az ad signed-in-user show --query id -o tsv)
     if [[ -z "$principal_id" ]]; then
         echo "Error: Could not determine signed-in user principal ID"
         return 1
@@ -52,7 +83,7 @@ azgm() {
 
     # Get management API token explicitly scoped to our tenant
     local mgmt_token
-    mgmt_token=$(az account get-access-token --tenant "$tenant_id" --resource "https://management.azure.com" --query accessToken -o tsv)
+    mgmt_token=$(_az_run az account get-access-token --tenant "$tenant_id" --resource "https://management.azure.com" --query accessToken -o tsv)
     if [[ -z "$mgmt_token" ]]; then
         echo "Error: Could not acquire management API token for tenant $tenant_id"
         return 1
@@ -75,7 +106,9 @@ azgm() {
         # Fetch eligible assignments for this subscription
         local eligible_assignments eligible_url
         eligible_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleEligibilityScheduleInstances?\$filter=asTarget()&api-version=2020-10-01"
+        _az_dbg "GET $eligible_url"
         eligible_assignments=$(curl -s -H "Authorization: Bearer $mgmt_token" "$eligible_url")
+        _az_dbg "eligible_assignments=$(echo "$eligible_assignments" | jq -c '.')"
 
         if [[ -z "$eligible_assignments" ]] || echo "$eligible_assignments" | jq -e '.error' &>/dev/null; then
             echo "  Warning: Could not fetch eligible assignments"
@@ -92,6 +125,7 @@ azgm() {
             role_def_id=$(echo "$eligible_assignments" | jq -r \
                 --arg name "$role_name" \
                 '[.value[] | select(.properties.expandedProperties.roleDefinition.displayName == $name)] | first | .properties.expandedProperties.roleDefinition.id // empty')
+            _az_dbg "role_def_id=$role_def_id"
 
             if [[ -z "$role_def_id" ]]; then
                 echo "    Error: No eligible assignment found for '$role_name'"
@@ -122,6 +156,8 @@ azgm() {
             deactivate_tmp=$(mktemp)
             echo "$deactivate_body" > "$deactivate_tmp"
             deactivate_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$deactivate_guid?api-version=2020-10-01"
+            _az_dbg "PUT $deactivate_url"
+            _az_dbg "body=$(cat "$deactivate_tmp")"
 
             local deactivate_resp
             deactivate_resp=$(curl -s -X PUT \
@@ -129,6 +165,7 @@ azgm() {
                 -H "Content-Type: application/json" \
                 -d "@$deactivate_tmp" "$deactivate_url")
             rm -f "$deactivate_tmp"
+            _az_dbg "deactivate_resp=$(echo "$deactivate_resp" | jq -c '.')"
 
             if echo "$deactivate_resp" | jq -e '.error' &>/dev/null; then
                 echo "    Not active (skipping deactivation)"
@@ -146,6 +183,7 @@ azgm() {
                         --arg rd "$role_def_id" \
                         --arg pid "$principal_id" \
                         '[.value[] | select(.properties.roleDefinitionId == $rd and .properties.principalId == $pid)] | length')
+                    _az_dbg "still_active=$still_active (attempt $wait_attempt)"
                     if [[ "$still_active" == "0" ]]; then
                         echo "    Deactivated"
                         break
@@ -184,6 +222,8 @@ azgm() {
             activate_tmp=$(mktemp)
             echo "$activate_body" > "$activate_tmp"
             activate_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$activate_guid?api-version=2020-10-01"
+            _az_dbg "PUT $activate_url"
+            _az_dbg "body=$(cat "$activate_tmp")"
 
             local activate_resp
             activate_resp=$(curl -s -X PUT \
@@ -191,6 +231,7 @@ azgm() {
                 -H "Content-Type: application/json" \
                 -d "@$activate_tmp" "$activate_url")
             rm -f "$activate_tmp"
+            _az_dbg "activate_resp=$(echo "$activate_resp" | jq -c '.')"
 
             if echo "$activate_resp" | jq -e '.error' &>/dev/null; then
                 echo "    Error: Activation failed"
@@ -212,9 +253,10 @@ azgm() {
     local refresh_attempt=0
     local sub_found=0
     while [[ $refresh_attempt -lt 6 ]]; do
-        az account list --refresh --only-show-errors > /dev/null 2>&1
+        _az_run az account list --refresh --only-show-errors > /dev/null
         local visible_subs
-        visible_subs=$(az account list --query "length([?tenantId=='$tenant_id' && name!='N/A(tenant level account)'])" -o tsv 2>/dev/null)
+        visible_subs=$(_az_run az account list --query "length([?tenantId=='$tenant_id' && name!='N/A(tenant level account)'])" -o tsv)
+        _az_dbg "visible_subs=$visible_subs (attempt $refresh_attempt)"
         if [[ "$visible_subs" -gt 0 ]]; then
             sub_found=1
             break
@@ -232,11 +274,11 @@ azgm() {
     local default_sub_id
     default_sub_id=$(yq -r '.subscriptions[] | select(.default == true) | .id' "$config_file")
     if [[ -n "$default_sub_id" && "$sub_found" -eq 1 ]]; then
-        if az account set --subscription "$default_sub_id"; then
+        if _az_run az account set --subscription "$default_sub_id"; then
             echo "Default subscription set to: $default_sub_id"
         else
             echo "Warning: Could not set default subscription $default_sub_id"
-            echo "  Available: $(az account list --query '[].{name:name, id:id, isDefault:isDefault}' -o table 2>/dev/null)"
+            echo "  Available: $(_az_run az account list --query '[].{name:name, id:id, isDefault:isDefault}' -o table)"
         fi
     fi
 }
@@ -355,18 +397,21 @@ _azvm_connect() {
     username=$(yq -r ".vms[$vm_idx].username // \"\"" "$config_file")
     password=$(yq -r ".vms[$vm_idx].password // \"\"" "$config_file")
 
-    # Resolve subscription name to ID for explicit --subscription on all az commands
-    local vm_sub_args=()
+    # Resolve subscription name to ID
+    local vm_sub_id=""
     if [[ -n "$vm_subscription" ]]; then
-        local vm_sub_id
-        vm_sub_id=$(az account list --query "[?name=='$vm_subscription'].id | [0]" -o tsv 2>/dev/null)
+        vm_sub_id=$(_az_run az account list --query "[?name=='$vm_subscription'].id | [0]" -o tsv)
         if [[ -z "$vm_sub_id" ]]; then
             echo "Error: Subscription '$vm_subscription' not found in az account list"
             return 1
         fi
-        vm_sub_args=(--subscription "$vm_sub_id")
         echo "Using subscription: $vm_subscription"
+        _az_dbg "vm_sub_id=$vm_sub_id"
     fi
+
+    # Build --subscription args for az commands that support it (az vm)
+    local vm_sub_args=()
+    [[ -n "$vm_sub_id" ]] && vm_sub_args=(--subscription "$vm_sub_id")
 
     # Check if tunnel already exists for this VM
     local existing_pid
@@ -379,22 +424,23 @@ _azvm_connect() {
     # Check if VM is running, start if needed
     echo "Checking VM power state..."
     local power_state
-    power_state=$(az vm get-instance-view \
+    power_state=$(_az_run az vm get-instance-view \
         --ids "$resource_id" "${vm_sub_args[@]}" \
         --query "instanceView.statuses[?starts_with(code, 'PowerState/')].displayStatus | [0]" \
-        -o tsv 2>/dev/null)
+        -o tsv)
+    _az_dbg "power_state=$power_state"
 
     if [[ "$power_state" != "VM running" ]]; then
         echo "VM is $power_state — starting..."
-        az vm start --ids "$resource_id" "${vm_sub_args[@]}" --no-wait 2>/dev/null
+        _az_run az vm start --ids "$resource_id" "${vm_sub_args[@]}" --no-wait
 
         local vm_wait=0
         while [[ $vm_wait -lt 30 ]]; do
             sleep 5
-            power_state=$(az vm get-instance-view \
+            power_state=$(_az_run az vm get-instance-view \
                 --ids "$resource_id" "${vm_sub_args[@]}" \
                 --query "instanceView.statuses[?starts_with(code, 'PowerState/')].displayStatus | [0]" \
-                -o tsv 2>/dev/null)
+                -o tsv)
             if [[ "$power_state" == "VM running" ]]; then
                 echo "VM is running"
                 break
@@ -418,16 +464,37 @@ _azvm_connect() {
     fi
 
     # Start bastion tunnel in background
+    # az network bastion tunnel (extension) doesn't support --subscription,
+    # so we briefly set the subscription context and restore it after launch
     echo "Starting bastion tunnel to $selected on localhost:$local_port..."
-    az network bastion tunnel \
-        --name "$bastion_name" \
-        --resource-group "$bastion_rg" \
-        --target-resource-id "$resource_id" \
-        --resource-port "$resource_port" \
-        --port "$local_port" \
-        "${vm_sub_args[@]}" &> /dev/null &
+    local prev_sub_id=""
+    if [[ -n "$vm_sub_id" ]]; then
+        prev_sub_id=$(_az_run az account show --query id -o tsv)
+        _az_run az account set --subscription "$vm_sub_id"
+    fi
+
+    if [[ "$_az_debug" -eq 1 ]]; then
+        az network bastion tunnel \
+            --name "$bastion_name" \
+            --resource-group "$bastion_rg" \
+            --target-resource-id "$resource_id" \
+            --resource-port "$resource_port" \
+            --port "$local_port" &
+    else
+        az network bastion tunnel \
+            --name "$bastion_name" \
+            --resource-group "$bastion_rg" \
+            --target-resource-id "$resource_id" \
+            --resource-port "$resource_port" \
+            --port "$local_port" &> /dev/null &
+    fi
     local tunnel_pid=$!
     disown
+
+    # Restore previous subscription immediately
+    if [[ -n "$prev_sub_id" ]]; then
+        _az_run az account set --subscription "$prev_sub_id"
+    fi
 
     # Wait for tunnel to be ready (port listening) or process to die
     echo "  Waiting for tunnel to be ready..."
@@ -557,6 +624,8 @@ _azvm_kill_all() {
 
 # Main azvm dispatcher
 azvm() {
+    _az_parse_debug "$@"
+    set -- "${_az_remaining_args[@]}"
     local subcmd="${1:-connect}"
     shift 2>/dev/null
 
@@ -566,13 +635,17 @@ azvm() {
         kill)       _azvm_kill "$@" ;;
         kill-all)   _azvm_kill_all "$@" ;;
         *)
-            echo "Usage: azvm [connect|ls|kill|kill-all]"
+            echo "Usage: azvm [-d|--debug] [connect|ls|kill|kill-all]"
             echo ""
             echo "Commands:"
             echo "  connect     Select a VM and start bastion tunnel (default)"
             echo "  ls          List active tunnels"
             echo "  kill <name|port>  Kill a specific tunnel"
             echo "  kill-all    Kill all tunnels"
+            echo ""
+            echo "Options:"
+            echo "  -d, --debug    Show debug output"
+            echo "  AZURE_DEBUG=1  Enable debug via env var"
             return 1
             ;;
     esac
