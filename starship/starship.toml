@@ -27,6 +27,7 @@ $php\
 $golang\
 $java\
 $kubernetes\
+$azure\
 $env_var\
 $character\
 """
@@ -183,6 +184,13 @@ disabled = true  # Enable if you often work inside containers
 symbol = "container "
 style = "red dimmed"
 format = "[$symbol\\[$name\\]]($style) "
+
+# Azure subscription — reads ~/.azure/azureProfile.json directly (no subprocess)
+[azure]
+disabled = false
+symbol = "\\[az\\]:"
+format = "[$symbol$subscription]($style) "
+style = "blue bold"
 
 # Disabled in favor of custom env_var module below
 [aws]

@@ -180,11 +180,19 @@ install:
 	@# Install everything else to ~/.config via .stowrc
 	@stow --ignore=home .
 	@echo "Dotfiles installed!"
+	@# Move stale ~/.zshrc left by the OMZ installer — ZDOTDIR makes it permanently unused
+	@if [ -f "$$HOME/.zshrc" ] && [ ! -L "$$HOME/.zshrc" ]; then \
+		echo "Moving stale ~/.zshrc -> ~/.zshrc.pre-dotfiles (ZDOTDIR is set; ~/.config/zsh/.zshrc is used instead)"; \
+		mv "$$HOME/.zshrc" "$$HOME/.zshrc.pre-dotfiles"; \
+	fi
 	@# Rebuild bat cache to register custom themes
+	@# Note: bat must be installed first (via 'make deps' on macOS, or apt install bat on Linux)
 	@if command -v bat &> /dev/null; then \
 		echo "Rebuilding bat cache..."; \
 		bat cache --build &> /dev/null; \
 		echo "Bat cache rebuilt"; \
+	else \
+		echo "Note: bat not found — skipping cache rebuild. Install bat and run 'bat cache --build' manually."; \
 	fi
 	@echo ""
 	@echo "Next steps:"
