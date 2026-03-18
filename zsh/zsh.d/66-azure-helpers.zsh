@@ -42,6 +42,7 @@ _az_parse_debug() {
     _az_debug=0
     _az_verbose=0
     _az_force=0
+    _az_open=0
     [[ "$AZURE_DEBUG" == "1" ]]   && _az_debug=1 && _az_verbose=1
     [[ "$AZURE_VERBOSE" == "1" ]] && _az_verbose=1
     local args=()
@@ -50,6 +51,7 @@ _az_parse_debug() {
             -d|--debug)   _az_debug=1; _az_verbose=1 ;;
             -v|--verbose) _az_verbose=1 ;;
             -f|--force)   _az_force=1 ;;
+            -o|--open)    _az_open=1 ;;
             *) args+=("$arg") ;;
         esac
     done
@@ -692,17 +694,29 @@ _azvm_init_state() {
     fi
 }
 
-# Remove entries whose PIDs are no longer alive
+# Remove stale entries: PID dead, or PID alive but port no longer listening
 _azvm_cleanup() {
     _azvm_init_state
     local result='[]'
     local count
     count=$(jq 'length' "$_azvm_state_file")
     for (( i=0; i<count; i++ )); do
-        local pid
+        local pid port
         pid=$(jq -r ".[$i].pid" "$_azvm_state_file")
+        port=$(jq -r ".[$i].port" "$_azvm_state_file")
         if kill -0 "$pid" 2>/dev/null; then
-            result=$(echo "$result" | jq --argjson entry "$(jq ".[$i]" "$_azvm_state_file")" '. + [$entry]')
+            if nc -z localhost "$port" 2>/dev/null; then
+                # PID alive and port responding — keep
+                result=$(echo "$result" | jq --argjson entry "$(jq ".[$i]" "$_azvm_state_file")" '. + [$entry]')
+            else
+                # PID alive but port dead (stale after sleep/PIM expiry) — kill it
+                kill "$pid" 2>/dev/null
+                lsof -ti :"$port" 2>/dev/null | xargs kill 2>/dev/null
+                _az_dbg "cleaned up stale tunnel PID $pid on port $port"
+            fi
+        else
+            # PID dead — clean up any orphaned processes still holding the port
+            lsof -ti :"$port" 2>/dev/null | xargs kill 2>/dev/null
         fi
     done
     _azvm_write_state "$result"
@@ -938,19 +952,21 @@ _azvm_connect() {
 
     echo "Tunnel active: $selected -> localhost:$local_port (PID $tunnel_pid)"
 
-    # Generate and open RDP file
-    local rdp_file="$TMPDIR/azvm-${selected}.rdp"
-    echo "full address:s:localhost:${local_port}" > "$rdp_file"
-    if [[ -n "$username" ]]; then
-        echo "username:s:${username}" >> "$rdp_file"
-    fi
-    if [[ -n "$password" ]]; then
-        echo "password 51:b:${password}" >> "$rdp_file"
-        echo "Warning: Password is stored in config — this is insecure"
-    fi
+    if [[ "$_az_open" -eq 1 ]]; then
+        # Generate and open RDP file
+        local rdp_file="$TMPDIR/azvm-${selected}.rdp"
+        echo "full address:s:localhost:${local_port}" > "$rdp_file"
+        if [[ -n "$username" ]]; then
+            echo "username:s:${username}" >> "$rdp_file"
+        fi
+        if [[ -n "$password" ]]; then
+            echo "password 51:b:${password}" >> "$rdp_file"
+            echo "Warning: Password is stored in config — this is insecure"
+        fi
 
-    echo "Opening RDP session..."
-    open "$rdp_file"
+        echo "Opening RDP session..."
+        open "$rdp_file"
+    fi
 }
 
 # List active tunnels
@@ -995,10 +1011,13 @@ _azvm_kill() {
         return 1
     fi
 
-    local name
+    local name port
     name=$(jq -r --arg t "$target" '.[] | select(.name == $t or .port == $t) | .name' "$_azvm_state_file")
+    port=$(jq -r --arg t "$target" '.[] | select(.name == $t or .port == $t) | .port' "$_azvm_state_file")
 
     kill "$pid" 2>/dev/null
+    # Clean up any orphaned child processes still holding the port
+    [[ -n "$port" ]] && lsof -ti :"$port" 2>/dev/null | xargs kill 2>/dev/null
     echo "Killed tunnel for $name (PID $pid)"
 
     # Remove from state
@@ -1019,10 +1038,12 @@ _azvm_kill_all() {
     fi
 
     for (( i=0; i<count; i++ )); do
-        local name pid
+        local name pid port
         name=$(jq -r ".[$i].name" "$_azvm_state_file")
         pid=$(jq -r ".[$i].pid" "$_azvm_state_file")
+        port=$(jq -r ".[$i].port" "$_azvm_state_file")
         kill "$pid" 2>/dev/null
+        [[ -n "$port" ]] && lsof -ti :"$port" 2>/dev/null | xargs kill 2>/dev/null
         echo "Killed tunnel for $name (PID $pid)"
     done
 
@@ -1042,7 +1063,7 @@ azvm() {
         kill)       _azvm_kill "$@" ;;
         kill-all)   _azvm_kill_all "$@" ;;
         *)
-            echo "Usage: azvm [-d|--debug] [connect|ls|kill|kill-all]"
+            echo "Usage: azvm [-d|--debug] [-o|--open] [connect|ls|kill|kill-all]"
             echo ""
             echo "Commands:"
             echo "  connect [vm-name]     Select a VM and start bastion tunnel (default)"
@@ -1051,6 +1072,7 @@ azvm() {
             echo "  kill-all              Kill all tunnels"
             echo ""
             echo "Options:"
+            echo "  -o, --open     Also open RDP session after tunnel is ready"
             echo "  -d, --debug    Show debug output"
             echo "  AZURE_DEBUG=1  Enable debug via env var"
             return 1
