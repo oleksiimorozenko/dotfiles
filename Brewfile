@@ -160,6 +160,8 @@ brew "cowsay"                  # Configurable talking cow
 # ------------------------------------------------------------------------------
 # Terminal
 cask "ghostty"                 # GPU-accelerated terminal
+tap "manaflow-ai/cmux"
+cask "cmux"                    # AI agent terminal with vertical tabs
 
 # AI Assistant Tools
 cask "claude-code"             # Terminal-based AI coding assistant
