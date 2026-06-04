@@ -170,7 +170,7 @@ cask "claude-code"             # Terminal-based AI coding assistant
 cask "medis"                   # Modern Redis GUI
 
 # Kubernetes
-cask "openlens"                # Kubernetes IDE
+cask "freelens"                # Kubernetes IDE
 
 # Browsers
 # cask "firefox"
