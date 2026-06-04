@@ -14,6 +14,47 @@ f() { echo "$(find . -type f -not -path '*/.*' | fzf)" | pbcopy }
 # Fuzzy find file and edit
 fv() { ${EDITOR:-vim} "$(find . -type f -not -path '*/.*' | fzf)" }
 
+# Clean Terraform/Terragrunt caches (.terraform, .terragrunt-cache)
+# Usage: tfclean [path]  (defaults to current directory)
+tfclean() {
+    local target="${1:-.}"
+
+    if [[ ! -d "$target" ]]; then
+        echo "Error: '$target' is not a directory"
+        return 1
+    fi
+
+    local dirs=()
+    while IFS= read -r d; do
+        dirs+=("$d")
+    done < <(find "$target" -type d \( -name ".terraform" -o -name ".terragrunt-cache" \) 2>/dev/null)
+
+    if (( ${#dirs[@]} == 0 )); then
+        echo "No .terraform or .terragrunt-cache directories found under $target"
+        return 0
+    fi
+
+    local noun="directories"
+    (( ${#dirs[@]} == 1 )) && noun="directory"
+    echo "Found ${#dirs[@]} cache $noun under $target:"
+    du -sh "${dirs[@]}" 2>/dev/null
+
+    local total
+    total=$(du -shc "${dirs[@]}" 2>/dev/null | tail -1 | awk '{print $1}')
+    echo
+    echo "Total: $total"
+    echo
+
+    local reply
+    read -r "reply?Delete all of these? [y/N] "
+    if [[ "$reply" =~ ^[Yy]$ ]]; then
+        rm -rf "${dirs[@]}"
+        echo "Deleted, reclaimed $total"
+    else
+        echo "Cancelled"
+    fi
+}
+
 # AWS morning authentication - authenticates to all needed profiles
 awsgm() {
     local config_file="$HOME/.config/zsh/local/awsgm.conf"
