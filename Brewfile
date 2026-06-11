@@ -8,6 +8,18 @@
 #   brew bundle --no-upgrade       # Install without upgrading existing
 #   brew bundle cleanup --force    # Remove packages not in this file
 #   brew bundle check              # Check if everything is installed
+#
+# Third-party tap trust (Homebrew 5.1+):
+#   Non-official taps are skipped by `brew update` and refused at load time when
+#   HOMEBREW_REQUIRE_TAP_TRUST is set. `brew bundle` auto-taps but does NOT trust,
+#   so on a fresh machine trust the taps this file relies on (per-machine state,
+#   stored in ~/.config/homebrew/trust.json — it cannot live in this Brewfile):
+#
+#     brew trust hashicorp/tap oleksiimorozenko/tap Azure/kubelogin manaflow-ai/cmux siderolabs/tap
+#
+#   Do NOT tap derailed/k9s — k9s lives in homebrew-core and the tap only shadows
+#   it. Untrusted-tap warnings for taps not listed above come from tools this file
+#   does not manage; `brew trust <tap>` to keep them or `brew untap <tap>` to remove.
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -106,7 +118,7 @@ brew "rustup"                  # Rust toolchain installer
 brew "ansible"                 # Configuration management
 
 # Terraform ecosystem
-brew "hashicorp/tap/terraform" # Infrastructure as Code
+brew "hashicorp/tap/terraform" # Infrastructure as Code (tap needs `brew trust`; removed from core under BUSL)
 # brew "terragrunt"            # Terraform wrapper
 brew "tflint"                  # Terraform linter
 brew "tfsec"                   # Terraform security scanner
@@ -124,18 +136,20 @@ brew "helm"                    # Kubernetes package manager
 brew "k9s"                     # Kubernetes TUI
 brew "argocd"                  # GitOps CD for Kubernetes
 brew "chart-testing"           # Helm chart testing and linting
+tap "siderolabs/tap"           # needs `brew trust`
+brew "siderolabs/tap/talosctl" # Talos Linux Kubernetes CLI
 
 # ------------------------------------------------------------------------------
 # AWS
 # ------------------------------------------------------------------------------
-tap "oleksiimorozenko/tap"
+tap "oleksiimorozenko/tap"          # needs `brew trust` (personal tap)
 brew "oleksiimorozenko/tap/awsom"  # k9s-like TUI for AWS SSO
 
 # ------------------------------------------------------------------------------
 # Azure
 # ------------------------------------------------------------------------------
 brew "azure-cli"               # Azure command-line interface
-tap "Azure/kubelogin"
+tap "Azure/kubelogin"               # needs `brew trust`
 brew "Azure/kubelogin/kubelogin"  # Kubernetes login for Azure
 
 # ------------------------------------------------------------------------------
@@ -160,7 +174,7 @@ brew "cowsay"                  # Configurable talking cow
 # ------------------------------------------------------------------------------
 # Terminal
 cask "ghostty"                 # GPU-accelerated terminal
-tap "manaflow-ai/cmux"
+tap "manaflow-ai/cmux"         # needs `brew trust`
 cask "cmux"                    # AI agent terminal with vertical tabs
 
 # AI Assistant Tools

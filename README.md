@@ -183,6 +183,18 @@ brew bundle --file=Brewfile --include="brew"  # Only CLI tools
 brew bundle --file=Brewfile --include="cask"  # Only GUI apps
 ```
 
+**Trust third-party taps (Homebrew 5.1+):** A few tools come from non-official taps
+(Terraform, awsom, kubelogin, cmux). Homebrew skips untrusted taps on `brew update`
+and refuses to load them when `HOMEBREW_REQUIRE_TAP_TRUST` is set. `brew bundle`
+auto-taps but does not trust, so trust them once per machine:
+
+```bash
+brew trust hashicorp/tap oleksiimorozenko/tap Azure/kubelogin manaflow-ai/cmux siderolabs/tap
+```
+
+Trust is per-machine state (`~/.config/homebrew/trust.json`) and is intentionally
+not part of the Brewfile.
+
 ### 3. Install Dotfiles
 
 The `Makefile` handles installation in the correct order:
@@ -558,4 +570,13 @@ make restow
 
 # Reload shell
 reload
+```
+
+**Homebrew "Skipping ... because it is not trusted" warnings:**
+```bash
+# Trust the taps this repo uses (per-machine; not stored in the Brewfile)
+brew trust hashicorp/tap oleksiimorozenko/tap Azure/kubelogin manaflow-ai/cmux siderolabs/tap
+
+# Warnings for taps you no longer use? Untap them instead:
+brew untap derailed/k9s   # k9s is in homebrew-core; this tap only shadows it
 ```
