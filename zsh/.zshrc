@@ -4,7 +4,7 @@
 # Main configuration file that loads modular configs from zsh.d/
 
 # Load all configs from zsh.d/ in numerical order
-for config in $ZDOTDIR/zsh.d/*.zsh; do
+for config in $ZDOTDIR/zsh.d/*.zsh(N); do
   source $config
 done
 
