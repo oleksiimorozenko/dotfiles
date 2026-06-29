@@ -6,6 +6,7 @@ Index file. Each section is its own file so public and private parts can be shar
 
 @~/.claude/style.md
 @~/.claude/principles.md
+@~/.claude/agents.md
 
 ## Private (symlinked, not in this repo)
 
