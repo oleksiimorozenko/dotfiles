@@ -15,6 +15,7 @@ font-family = JetBrains Mono
 # font-family = JetBrainsMono Nerd Font
 font-size = 14
 # Window
+window-save-state = always
 maximize = true
 window-decoration = true
 window-padding-x = 20
@@ -42,6 +43,12 @@ keybind = shift+enter=text:\x1b\r
 #########
 # Hide mouse cursor while typing
 mouse-hide-while-typing = true
+
+############
+# Terminal #
+############
+# Advertise xterm-256color for compatibility with remote servers
+term = xterm-256color
 
 ##################
 # Shell settings #
