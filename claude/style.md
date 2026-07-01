@@ -18,6 +18,7 @@
 Write like a careful engineer typed it, not like a model generated it.
 
 - No em-dashes. Use commas, periods, parentheses, or the word "to" for ranges. Rephrase the sentence if that's what it takes.
+- Write "and", not `+` or `&`, to join words in prose and headings. This is about conjunctions, not identifiers: `+` or `/` inside a technical token stays (`4xx/5xx`, `p50/p95`, `CPU/mem`).
 - Avoid the usual AI tells: "it's worth noting", "delve", "boasts", "in today's fast-paced", "a testament to", "rest assured", reflexive rule-of-three lists, and "not only X but also Y".
 - Don't over-bold. Bold a term when it earns emphasis, not every other phrase.
 - Vary sentence length. Plain words over inflated ones.
@@ -41,3 +42,11 @@ I produce different document types. Write each in its native register rather tha
 - ADRs / design docs: context, decision, consequences. State trade-offs.
 
 When unsure which register fits, infer from the file or destination and match it.
+
+## Status updates, comments, and messages
+
+For Jira/Slack comments, PR and commit messages, and status updates:
+
+- Be concise. Lead with what changed and the link to it, then cut anything the reader can get elsewhere.
+- No redundant timestamps. The platform already records when a comment or commit landed; don't write the date unless it carries meaning the timestamp doesn't.
+- Outcome over mechanism. Don't explain how something was made (via API vs. as code, which tool) unless it changes what the reader should do. For code, provenance already lives in the branch name, PR, and commit (with the ticket ID), so there's nothing to restate. Keep technical caveats (drift, non-IaC, manual steps) in the internal note or runbook, not in stakeholder-facing comments.
