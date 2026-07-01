@@ -33,15 +33,9 @@ Write like a careful engineer typed it, not like a model generated it.
 
 ## Documents: match the artifact
 
-I produce different document types. Write each in its native register rather than forcing one house style:
+Long-form documents get their own register (incident report, runbook, Jira ticket, Confluence page, ADR). Don't force one house style across them; infer the register from the file or destination and match it.
 
-- Incident / postmortem reports: formal, narrative where it aids understanding (timeline, impact, root cause, what we'd do differently). Honest about what went wrong.
-- Runbooks / SOPs: terse, numbered, imperative steps. Commands in code blocks. Assume a competent operator under pressure.
-- Jira tickets / drafts: short and scoped, a handful of lines each.
-- Confluence / shared docs: structured and scannable. Headers, bullets, a TL;DR up top, tables for reference data.
-- ADRs / design docs: context, decision, consequences. State trade-offs.
-
-When unsure which register fits, infer from the file or destination and match it.
+The full registers, the tiered AI-vocabulary list, and the detect/rewrite/edit passes live in the `docstyle` skill. Invoke it when drafting or editing a document. The `docstyle-lint` hook enforces the greppable subset (em-dashes, banned phrases, AI-tool fingerprints) on every `.md` write, so treat that as a backstop, not the whole standard.
 
 ## Status updates, comments, and messages
 
