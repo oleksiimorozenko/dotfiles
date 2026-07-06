@@ -42,7 +42,7 @@ for pat in \
   "oai_citation" \
   "contentReference\[oaicite" \
   "utm_source=(chatgpt|openai|copilot|claude|perplexity|gemini|grok)" \
-  "\[(Your|Insert|Add|Enter|Describe|Specify|TODO|TBD|PLACEHOLDER)[^]]*\]" \
+  "(^|[^[])\[(Your|Insert|Add|Enter|Describe|Specify|TODO|TBD|PLACEHOLDER)[^]]*\]" \
   "(19|20)[0-9]{2}-XX-XX" \
   "as of my (last update|knowledge cut)" \
   "as an? (AI|artificial intelligence|large language)" ; do
