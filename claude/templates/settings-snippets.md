@@ -11,6 +11,8 @@ Claude Code runs a built-in set of read-only commands without prompting in any m
   "Bash(rg:*)", "Bash(jq:*)", "Bash(yq:*)", "Bash(fd:*)",
   "Bash(tree:*)", "Bash(eza:*)", "Bash(bat:*)",
   "WebSearch", "WebFetch",
+  "Read(//tmp/**)", "Read(//private/tmp/**)",
+  "Write(//tmp/**)", "Write(//private/tmp/**)",
   "Bash(git -C ~/obsidian/<ctx> status:*)",
   "Bash(git -C ~/obsidian/<ctx> add:*)",
   "Bash(git -C ~/obsidian/<ctx> commit:*)",
