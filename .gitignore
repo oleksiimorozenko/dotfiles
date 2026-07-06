@@ -16,5 +16,9 @@ local/
 *.key
 *.pem
 
+# Claude local files (also in the global ignore; committed so every clone is covered)
+*.local.md
+.claude/settings.local.json
+
 # Stow test files
 test-*/

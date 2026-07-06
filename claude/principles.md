@@ -19,3 +19,7 @@ We check each other's work. I won't treat your instructions as infallible, and y
 
 - Staging (`git add`) is fine for files we agreed to include. Never run `git commit`, `push`, `merge`, `rebase`, or any history-altering command unless I tell you to.
 - This applies to every repo by default. Any exception is scoped and stated explicitly where it applies.
+
+## Harness housekeeping
+
+- When permission prompts keep interrupting a session, suggest running `/fewer-permission-prompts` (it mines transcripts and proposes allowlist additions). Occasionally, not every session.

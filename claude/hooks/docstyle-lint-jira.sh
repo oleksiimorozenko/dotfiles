@@ -14,6 +14,7 @@ text=$(printf '%s' "$input" | jq -r '
     .tool_input.summary?,
     .tool_input.fields?.summary?,
     .tool_input.commentBody?,
+    (.tool_input.comment? | if type=="string" then . else empty end),
     (.tool_input.description?         | if type=="string" then . elif type=="object" then [.. | .text? // empty] | join(" ") else empty end),
     (.tool_input.fields?.description? | if type=="string" then . elif type=="object" then [.. | .text? // empty] | join(" ") else empty end)
   ] | map(select(. != null and . != "")) | join("\n")
