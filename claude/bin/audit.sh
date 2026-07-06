@@ -18,9 +18,15 @@ for f in CLAUDE.md style.md principles.md agents.md; do
   [[ -f "$DOTFILES/claude/$f" && "$(readlink "$C/$f" 2>/dev/null)" != "$DOTFILES/claude/$f" ]] \
     && finding "link missing or wrong: ~/.claude/$f (run bin/bootstrap.sh)"
 done
+# hooks/skills are real dirs populated per-file (so public/private/local mix);
+# check each public entry is linked inside, not that the dir itself is a link.
 for d in hooks skills; do
-  [[ -d "$DOTFILES/claude/$d" && "$(readlink "$C/$d" 2>/dev/null)" != "$DOTFILES/claude/$d" ]] \
-    && finding "link missing or wrong: ~/.claude/$d (run bin/bootstrap.sh)"
+  [[ -d "$DOTFILES/claude/$d" ]] || continue
+  for e in "$DOTFILES/claude/$d"/*; do
+    [[ -e "$e" ]] || continue
+    [[ "$(readlink "$C/$d/$(basename "$e")" 2>/dev/null)" != "$e" ]] \
+      && finding "link missing or wrong: ~/.claude/$d/$(basename "$e") (run bin/bootstrap.sh)"
+  done
 done
 
 # private-layer links, plus strays into other vaults

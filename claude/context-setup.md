@@ -4,7 +4,7 @@ How a machine gets wired to this Claude config: the public layer from this repo,
 
 ## The architecture (three tiers)
 
-1. Public global config: this repo's `claude/` (`CLAUDE.md` index, `style.md`, `principles.md`, `agents.md`, `hooks/`, `skills/`). Symlinked into `~/.claude`.
+1. Public global config: this repo's `claude/` (`CLAUDE.md` index, `style.md`, `principles.md`, `agents.md`, `hooks/`, `skills/`). The single files are symlinked into `~/.claude`; `hooks/` and `skills/` are real dirs there, populated by per-file symlinks so public (this repo), private (a vault's `_claude/hooks`|`skills`), and machine-local entries can coexist in one dir.
 2. Private global config: the vault's `_claude/` (section files, `settings.json`, `commands/`), symlinked into `~/.claude`. The public `CLAUDE.md` imports every section by absolute path (`@~/.claude/...`); a missing private file simply no-ops.
 3. The vault itself: notes plus `memory/` (auto-memory travels with the vault via git).
 
@@ -13,7 +13,7 @@ One context is wired per machine; every machine shares the public layer.
 ## A. New machine or new context
 
 1. Clone this repo and the (private) context vault.
-2. Run `claude/bin/bootstrap.sh ~/obsidian/<ctx>`. It derives the repo location from itself, links the public files and dirs, then the vault's `_claude/` files and `commands/`. It never clobbers a real file.
+2. Run `claude/bin/bootstrap.sh ~/obsidian/<ctx>`. It derives the repo location from itself, links the public files, links each `hooks/`/`skills/` entry into a real dir, then the vault's `_claude/` files and `commands/`. It never clobbers a real file.
 3. If the vault is new, create its `_claude/` from `claude/templates/`:
    - `settings.json`: assemble from the blocks in `templates/settings-snippets.md`, then add personal keys (model, theme, notifications).
    - `context.md` (who I am in this context) and `git.md` (branch and commit conventions, plus the vault sync carve-out). Add `operations.md`, `shell.md`, `projects.md`, `mcp.md`, `secrets.md` as they become useful.

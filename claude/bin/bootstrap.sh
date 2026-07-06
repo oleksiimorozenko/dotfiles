@@ -19,12 +19,19 @@ link() {  # link <target> <linkname>; never clobber a real file
   echo "linked: ${name/#$HOME/\~} -> ${target/#$HOME/\~}"
 }
 
-# Public: files and whole dirs from this repo
+# Public single files from this repo
 for f in CLAUDE.md style.md principles.md agents.md; do
   [[ -f "$DOTFILES/claude/$f" ]] && link "$DOTFILES/claude/$f" "$CLAUDE_DIR/$f"
 done
+# Public hooks/skills: link each entry into a real dir, not as a whole-dir
+# symlink, so private (vault) and machine-local entries can coexist here.
 for d in hooks skills; do
-  [[ -d "$DOTFILES/claude/$d" ]] && link "$DOTFILES/claude/$d" "$CLAUDE_DIR/$d"
+  [[ -d "$DOTFILES/claude/$d" ]] || continue
+  [[ -L "$CLAUDE_DIR/$d" ]] && rm "$CLAUDE_DIR/$d"   # replace an old whole-dir symlink
+  mkdir -p "$CLAUDE_DIR/$d"
+  for e in "$DOTFILES/claude/$d"/*; do
+    [[ -e "$e" ]] && link "$e" "$CLAUDE_DIR/$d/$(basename "$e")"
+  done
 done
 
 # Rewire guard: drop private-layer links that point into a different vault,

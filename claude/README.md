@@ -8,7 +8,7 @@ The shareable part of my Claude Code setup, symlinked into `~/.claude`.
 - `style.md`, `principles.md`, `agents.md`: writing style, working principles, agent delegation.
 - `hooks/`: docstyle enforcement. `docstyle-check.sh` is the shared checker; `docstyle-lint.sh` (PostToolUse) gates `.md` writes, `docstyle-lint-jira.sh` (PreToolUse) gates Jira posts.
 - `skills/docstyle/`: the docstyle skill (registers, tiered vocabulary, detect/rewrite/edit passes).
-- `bin/bootstrap.sh`: wires `~/.claude` from this repo plus a context vault (idempotent; unlinks private-layer links left by another vault). Usage: `claude/bin/bootstrap.sh ~/obsidian/<ctx>`.
+- `bin/bootstrap.sh`: wires `~/.claude` from this repo plus a context vault (idempotent; unlinks private-layer links left by another vault). `hooks/` and `skills/` are linked per-entry into real dirs so public, private (vault), and machine-local entries can coexist. Usage: `claude/bin/bootstrap.sh ~/obsidian/<ctx>`.
 - `bin/audit.sh`: report-only convergence check for a context; prints what still diverges from the unified layout. Usage: `claude/bin/audit.sh ~/obsidian/<ctx>`.
 - `templates/`: per-context starting points (settings snippets, sync-vault and daily commands, daily note template, memory conventions, ticket-folder structure).
 - `context-setup.md`: new-machine setup and the convergence checklist for older contexts.
