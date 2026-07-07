@@ -1,4 +1,32 @@
-# Prose lint sources: <tool-name regex>  <handler>   (see docstyle-lint-prose.sh)
-# Generic / public sources only. Context-specific sources go in a layered table
-# passed as an arg (e.g. the sdh vault's _claude/hooks/docstyle-prose-sources.tsv).
-mcp__atlassian__(jira_add_comment|jira_create_issue|jira_update_issue)  jira
+# Prose lint sources (shared base): <tool-name regex>  <handler>
+#
+# Read by docstyle-lint-prose.sh, which also reads any overlay tables passed to
+# it as args. Rows that apply on ALL your machines can live here; anything
+# context-specific goes in that context's overlay table
+# (e.g. <vault>/_claude/hooks/docstyle-prose-sources.local.tsv). First match wins;
+# a tool in no table is not linted.
+#
+# Row format: <tool-name regex, anchored ^...$>  <handler>, whitespace-separated.
+# Handlers:
+#   flat:f1,f2,...   extract those top-level .tool_input string fields
+#   jira             sooperset shape: body / summary / description(string|ADF) /
+#                    fields(JSON string -> summary, description)
+# Tool names and prose fields vary by MCP server, so verify against the live
+# schema before adding a row. A wrong or missing field fails silent (post allowed).
+#
+# This base ships with no live rows. Enable per machine by adding rows (here if
+# shared, or in a context overlay). Examples to copy and adapt:
+#
+#   # Jira, sooperset/mcp-atlassian:
+#   mcp__atlassian__(jira_add_comment|jira_create_issue|jira_update_issue)  jira
+#
+#   # Jira, official Atlassian / Rovo: different tool names, and description is
+#   # ADF rather than a JSON-string 'fields', so it needs its own handler, not
+#   # `jira`. Wire it against the live schema when you use that server.
+#
+#   # Azure DevOps pull requests:
+#   mcp__azure-devops__(repo_create_pull_request|repo_update_pull_request|repo_create_pull_request_thread|repo_reply_to_comment)  flat:title,description,content
+#
+#   # GitHub pull requests (tool names vary by GitHub MCP server, verify yours):
+#   mcp__github__(create_pull_request|update_pull_request)  flat:title,body
+#   mcp__github__(add_pull_request_review_comment)  flat:body

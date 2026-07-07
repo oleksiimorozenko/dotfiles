@@ -6,7 +6,7 @@ The shareable part of my Claude Code setup, symlinked into `~/.claude`.
 
 - `CLAUDE.md`: index; imports the section files by absolute path (`@~/.claude/...`). Public imports resolve from this repo; private ones (context, operations, secrets pointers, ...) from a per-context vault, and no-op on machines where they're absent.
 - `style.md`, `principles.md`, `agents.md`: writing style, working principles, agent delegation.
-- `hooks/`: docstyle enforcement. `docstyle-check.sh` is the shared checker; `docstyle-lint.sh` (PostToolUse) gates `.md` writes, `docstyle-lint-prose.sh` (PreToolUse) gates prose posts for the MCP tools listed in `docstyle-prose-sources.tsv` (Jira out of the box; layer a context table for more).
+- `hooks/`: docstyle enforcement. `docstyle-check.sh` is the shared checker; `docstyle-lint.sh` (PostToolUse) gates `.md` writes, `docstyle-lint-prose.sh` (PreToolUse) gates prose posts for the MCP tools you list in `docstyle-prose-sources.tsv` (a documented, example-only base) plus a per-context overlay passed as a command arg. The engine and handlers live here; live rows are declared per context.
 - `skills/docstyle/`: the docstyle skill (registers, tiered vocabulary, detect/rewrite/edit passes).
 - `bin/bootstrap.sh`: wires `~/.claude` from this repo plus a context vault (idempotent; unlinks private-layer links left by another vault). `hooks/` and `skills/` are linked per-entry into real dirs so public, private (vault), and machine-local entries can coexist. Usage: `claude/bin/bootstrap.sh ~/obsidian/<ctx>`.
 - `bin/audit.sh`: report-only convergence check for a context; prints what still diverges from the unified layout. Usage: `claude/bin/audit.sh ~/obsidian/<ctx>`.
