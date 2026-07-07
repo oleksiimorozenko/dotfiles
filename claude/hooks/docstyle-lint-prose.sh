@@ -8,7 +8,11 @@
 #     <tool-name-regex>   <handler>
 # The regex is anchored (^...$) against the tool name. Handlers:
 #     flat:f1,f2,...   extract those top-level .tool_input string fields
-#     jira             sooperset jira: body / summary / description(string|ADF) /
+#     atlassian        official Atlassian/Rovo jira+confluence: commentBody /
+#                      summary / title / body / description(string|ADF) /
+#                      fields(object -> summary, description)
+#     atlassian-custom sooperset/mcp-atlassian jira+confluence: comment / summary /
+#                      title / body / content / description(string|ADF) /
 #                      fields(JSON string -> summary, description)
 # This script's sibling table is always read; extra table paths passed as args
 # are read after it (used to layer a private, context-specific table on top).
@@ -38,14 +42,24 @@ done
 [ -n "$handler" ] || exit 0   # tool not listed -> not linted
 
 case "$handler" in
-  jira)
+  atlassian)
     prog='
+      def txt: if type=="string" then . elif type=="object" then [.. | .text? // empty] | join(" ") else empty end;
       def asobj: if type=="string" then (fromjson? // {}) else (. // {}) end;
-      [ .tool_input.summary?, .tool_input.body?,
-        (.tool_input.comment? | if type=="string" then . else empty end),
-        (.tool_input.description? | if type=="string" then . elif type=="object" then [.. | .text? // empty] | join(" ") else empty end),
+      [ .tool_input.commentBody?, .tool_input.summary?, .tool_input.title?, .tool_input.body?,
+        (.tool_input.description? | txt),
         (.tool_input.fields | asobj | .summary?),
-        (.tool_input.fields | asobj | .description? | if type=="string" then . elif type=="object" then [.. | .text? // empty] | join(" ") else empty end)
+        (.tool_input.fields | asobj | .description? | txt)
+      ]' ;;
+  atlassian-custom)
+    prog='
+      def txt: if type=="string" then . elif type=="object" then [.. | .text? // empty] | join(" ") else empty end;
+      def asobj: if type=="string" then (fromjson? // {}) else (. // {}) end;
+      [ .tool_input.summary?, .tool_input.title?, .tool_input.body?, .tool_input.content?,
+        (.tool_input.comment? | if type=="string" then . else empty end),
+        (.tool_input.description? | txt),
+        (.tool_input.fields | asobj | .summary?),
+        (.tool_input.fields | asobj | .description? | txt)
       ]' ;;
   flat:*)
     arr=$(printf '%s' "${handler#flat:}" | tr ',' '\n' \
