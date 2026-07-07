@@ -6,7 +6,7 @@
 #   $1 = label shown in the message (file path, tool name, ...)
 #   $2 = "hard-only" to suppress the soft advisory (e.g. tickets/comments)
 # Pattern library adapted from avoid-ai-writing (MIT, Conor Bronsdon); house
-# rules from style.md. Kept in sync with docstyle-lint.sh + docstyle-lint-jira.sh.
+# rules from style.md. Kept in sync with docstyle-lint.sh + docstyle-lint-prose.sh.
 set -uo pipefail
 label="${1:-input}"
 mode="${2:-}"

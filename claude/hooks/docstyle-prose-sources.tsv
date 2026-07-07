@@ -1,0 +1,4 @@
+# Prose lint sources: <tool-name regex>  <handler>   (see docstyle-lint-prose.sh)
+# Generic / public sources only. Context-specific sources go in a layered table
+# passed as an arg (e.g. the sdh vault's _claude/hooks/docstyle-prose-sources.tsv).
+mcp__atlassian__(jira_add_comment|jira_create_issue|jira_update_issue)  jira

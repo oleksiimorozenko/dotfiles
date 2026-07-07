@@ -58,18 +58,18 @@ PostToolUse on every .md write (all contexts). PreToolUse on Jira posts (context
   ],
   "PreToolUse": [
     {
-      "matcher": "mcp__atlassian__(addCommentToJiraIssue|createJiraIssue|editJiraIssue)",
+      "matcher": "mcp__atlassian__(jira_add_comment|jira_create_issue|jira_update_issue)",
       "hooks": [
         { "type": "command",
-          "command": "\"$HOME/.claude/hooks/docstyle-lint-jira.sh\"",
-          "statusMessage": "docstyle lint (jira)" }
+          "command": "\"$HOME/.claude/hooks/docstyle-lint-prose.sh\"",
+          "statusMessage": "docstyle lint (prose)" }
       ]
     }
   ]
 }
 ```
 
-Matcher for the official Atlassian server: `mcp__atlassian__(addCommentToJiraIssue|createJiraIssue|editJiraIssue)`. For sooperset/mcp-atlassian: `mcp__atlassian__(jira_add_comment|jira_create_issue|jira_update_issue)`.
+`docstyle-lint-prose.sh` is list-driven: the matcher names the tools to gate, and `hooks/docstyle-prose-sources.tsv` (sibling to the hook) maps each tool-name regex to how its prose is extracted (`jira`, or `flat:field1,field2`). To lint context-specific tools (e.g. Azure DevOps PRs), add them to the matcher, pass a second table path as a command arg (`docstyle-lint-prose.sh "$HOME/obsidian/<ctx>/_claude/hooks/docstyle-prose-sources.tsv"`), and add rows to that table. Jira tool names differ by server: sooperset/mcp-atlassian uses `jira_add_comment|jira_create_issue|jira_update_issue`; the official Atlassian server uses `addCommentToJiraIssue|createJiraIssue|editJiraIssue` (update the matcher and the table row together).
 
 ## Hooks: SessionEnd nudges
 
