@@ -11,6 +11,7 @@ Index file. Each section is its own file so public and private parts can be shar
 ## Private (symlinked, not in this repo)
 
 @~/.claude/context.md
+@~/.claude/vault.md
 @~/.claude/operations.md
 @~/.claude/shell.md
 @~/.claude/git.md
