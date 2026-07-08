@@ -1,0 +1,14 @@
+filters:
+  and:
+    - note.jira != null
+views:
+  - type: table
+    name: Mirror staleness
+    order:
+      - file.name
+      - note.jira
+      - note.status
+      - note.synced
+    sort:
+      - property: note.synced
+        direction: ASC

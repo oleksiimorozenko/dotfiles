@@ -23,9 +23,10 @@ link() {  # link <target> <linkname>; never clobber a real file
 for f in CLAUDE.md style.md principles.md agents.md; do
   [[ -f "$DOTFILES/claude/$f" ]] && link "$DOTFILES/claude/$f" "$CLAUDE_DIR/$f"
 done
-# Public hooks/skills: link each entry into a real dir, not as a whole-dir
-# symlink, so private (vault) and machine-local entries can coexist here.
-for d in hooks skills; do
+# Public hooks/skills/commands: link each entry into a real dir, not as a
+# whole-dir symlink, so public, private (vault) and machine-local entries
+# can coexist here.
+for d in hooks skills commands; do
   [[ -d "$DOTFILES/claude/$d" ]] || continue
   [[ -L "$CLAUDE_DIR/$d" ]] && rm "$CLAUDE_DIR/$d"   # replace an old whole-dir symlink
   mkdir -p "$CLAUDE_DIR/$d"
@@ -37,7 +38,7 @@ done
 # Rewire guard: drop private-layer links that point into a different vault,
 # so switching a machine's context can't leave stale section files behind
 shopt -s nullglob
-for l in "$CLAUDE_DIR"/*.md "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/commands"; do
+for l in "$CLAUDE_DIR"/*.md "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/commands" "$CLAUDE_DIR"/commands/*; do
   [[ -L "$l" ]] || continue
   t="$(readlink "$l")"
   if [[ "$t" == "$HOME"/obsidian/* && "$t" != "$VAULT"/* ]]; then
@@ -49,7 +50,14 @@ done
 for f in "$VAULT"/_claude/*.md "$VAULT"/_claude/settings.json; do
   link "$f" "$CLAUDE_DIR/$(basename "$f")"
 done
-[[ -d "$VAULT/_claude/commands" ]] && link "$VAULT/_claude/commands" "$CLAUDE_DIR/commands"
+# Vault commands: per-entry links (dir may already hold public entries)
+if [[ -d "$VAULT/_claude/commands" ]]; then
+  [[ -L "$CLAUDE_DIR/commands" ]] && rm "$CLAUDE_DIR/commands"   # old whole-dir symlink
+  mkdir -p "$CLAUDE_DIR/commands"
+  for e in "$VAULT"/_claude/commands/*; do
+    [[ -e "$e" ]] && link "$e" "$CLAUDE_DIR/commands/$(basename "$e")"
+  done
+fi
 
 # Git identity check (non-destructive; warns only)
 GITLOCAL="$HOME/.config/git/config.local"
