@@ -18,9 +18,9 @@ for f in CLAUDE.md style.md principles.md agents.md; do
   [[ -f "$DOTFILES/claude/$f" && "$(readlink "$C/$f" 2>/dev/null)" != "$DOTFILES/claude/$f" ]] \
     && finding "link missing or wrong: ~/.claude/$f (run bin/bootstrap.sh)"
 done
-# hooks/skills are real dirs populated per-file (so public/private/local mix);
-# check each public entry is linked inside, not that the dir itself is a link.
-for d in hooks skills; do
+# hooks/skills/commands are real dirs populated per-file (public/private/local
+# mix); check each public entry is linked inside, not that the dir is a link.
+for d in hooks skills commands; do
   [[ -d "$DOTFILES/claude/$d" ]] || continue
   for e in "$DOTFILES/claude/$d"/*; do
     [[ -e "$e" ]] || continue
@@ -34,9 +34,16 @@ for f in "$VAULT"/_claude/*.md "$VAULT"/_claude/settings.json; do
   b="$(basename "$f")"
   [[ "$(readlink "$C/$b" 2>/dev/null)" != "$f" ]] && finding "link missing or wrong: ~/.claude/$b"
 done
-[[ -d "$VAULT/_claude/commands" && "$(readlink "$C/commands" 2>/dev/null)" != "$VAULT/_claude/commands" ]] \
-  && finding "link missing or wrong: ~/.claude/commands"
-for l in "$C"/*.md "$C"/settings.json "$C"/commands; do
+if [[ -d "$VAULT/_claude/commands" ]]; then
+  [[ -L "$C/commands" ]] \
+    && finding "~/.claude/commands is a whole-dir symlink (pre-merge layout; run bin/bootstrap.sh)"
+  for e in "$VAULT"/_claude/commands/*; do
+    [[ -e "$e" ]] || continue
+    [[ "$(readlink "$C/commands/$(basename "$e")" 2>/dev/null)" != "$e" ]] \
+      && finding "link missing or wrong: ~/.claude/commands/$(basename "$e")"
+  done
+fi
+for l in "$C"/*.md "$C"/settings.json "$C"/commands "$C"/commands/*; do
   [[ -L "$l" ]] || continue
   t="$(readlink "$l")"
   [[ "$t" == "$HOME"/obsidian/* && "$t" != "$VAULT"/* ]] \
