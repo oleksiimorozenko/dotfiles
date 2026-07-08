@@ -4,7 +4,7 @@ How a machine gets wired to this Claude config: the public layer from this repo,
 
 ## The architecture (three tiers)
 
-1. Public global config: this repo's `claude/` (`CLAUDE.md` index, `style.md`, `principles.md`, `agents.md`, `hooks/`, `skills/`). The single files are symlinked into `~/.claude`; `hooks/` and `skills/` are real dirs there, populated by per-file symlinks so public (this repo), private (a vault's `_claude/hooks`|`skills`), and machine-local entries can coexist in one dir.
+1. Public global config: this repo's `claude/` (`CLAUDE.md` index, `style.md`, `principles.md`, `agents.md`, `hooks/`, `skills/`). The single files are symlinked into `~/.claude`; `hooks/`, `skills/`, and `commands/` are real dirs there, populated by per-file symlinks so public (this repo), private (a vault's `_claude/`), and machine-local entries can coexist in one dir.
 2. Private global config: the vault's `_claude/` (section files, `settings.json`, `commands/`), symlinked into `~/.claude`. The public `CLAUDE.md` imports every section by absolute path (`@~/.claude/...`); a missing private file simply no-ops.
 3. The vault itself: notes plus `memory/` (auto-memory travels with the vault via git).
 
@@ -38,3 +38,8 @@ One context is wired per machine; every machine shares the public layer.
 5. Scripts under `_claude/bin/`: replace hardcoded home paths with `$HOME`; delete any local bootstrap copy (this repo's is canonical).
 6. Ticket folder: adopt the `templates/jira-vault/` structure where it fits; org process stays in that folder's `CLAUDE.md`.
 7. Verify as in A.5, then `/sync-vault`.
+
+## Obsidian extras (per machine)
+
+- Claude-side Obsidian skills (teach agents wikilinks/callouts/Bases syntax): `claude plugin marketplace add kepano/obsidian-skills && claude plugin install obsidian@obsidian-skills`.
+- Vault community plugins (Homepage, Excalidraw, per the vault's `.obsidian/plugins.txt`): `obsidian/install-plugins.sh ~/obsidian/<ctx>`, then restart Obsidian, disable Restricted mode once, and point Homepage at `HOME`.
