@@ -55,6 +55,10 @@ term = xterm-256color
 ##################
 # Shell integration
 shell-integration = detect
+# ssh-terminfo tic-installs xterm-ghostty on each remote via a 2nd ssh connection; on non-tic
+# hosts (Windows OpenSSH, minimal shells) it fails and double-prompts for the password until
+# key auth is set up. Kept on (worth it on Linux). Per-host bypass: `command ssh host` calls
+# the real ssh and skips this wrapper (TERM stays xterm-256color, so remotes still work).
 shell-integration-features = no-cursor,sudo,title,ssh-env,ssh-terminfo,path
 # Quick terminal settings
 quick-terminal-position = bottom
