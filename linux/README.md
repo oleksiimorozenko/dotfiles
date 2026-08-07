@@ -61,6 +61,23 @@ When a secondary user needs a new brew tool, install it *as the owner*. If you'd
 rather every user self-serve brew, make the prefix group-writable by a shared
 group instead, but Homebrew warns against it and updates can re-break the perms.
 
+The group-writable recipe that actually holds (used on swpve): add both users
+to a shared group (`users`), then `chgrp -R users` the prefix, `chmod -R g+w`,
+**setgid every dir** (`find "$PREFIX" -type d -exec chmod g+s {} +`) so new files
+inherit the group, and set **`umask 002`** for both users. Skipping setgid or
+umask is why the naive `g+w` decays after a few `brew update`s.
+
+### Multiple Syncthing instances on one host
+
+One Syncthing per user, but the second instance collides with the first on the
+GUI port (8384) and the sync port (22000) and silently relocates to random
+ports. Give each user's instance distinct ports up front, in
+`~/.local/state/syncthing/config.xml`: e.g. user A keeps `8384`/`22000`, user B
+gets `8385`/`22001` (`<gui><address>` and the tcp/quic `<listenAddress>`s).
+Enable per-user with `systemctl enable --now syncthing@<user>` (Debian's
+template) and `loginctl enable-linger <user>` so it runs when they are not
+logged in. Peers connect to each instance on its own sync port.
+
 ## Not available via Homebrew on Linux
 
 ### Formulae
