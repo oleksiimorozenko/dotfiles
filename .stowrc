@@ -11,6 +11,7 @@
 --ignore=\.DS_Store
 --ignore=Makefile
 --ignore=Brewfile
+--ignore=Dockerfile
 --ignore=LICENSE
 --ignore=.*-backup-.*\.txt$
 --ignore=.*\.md$

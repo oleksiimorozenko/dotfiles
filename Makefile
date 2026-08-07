@@ -1,4 +1,4 @@
-.PHONY: install uninstall restow list help clean bootstrap deps prereq-check prereq-install tmux-plugins
+.PHONY: install uninstall restow list help clean bootstrap deps deps-linux prereq-check prereq-install tmux-plugins
 
 # Detect operating system
 UNAME := $(shell uname -s)
@@ -18,6 +18,7 @@ help:
 	@echo "  make prereq-install  - Install prerequisites (git, zsh, curl)"
 	@echo "  make bootstrap       - Install Homebrew, Oh-My-Zsh, fzf-tab, and TPM"
 	@echo "  make deps            - Install all dependencies via Brewfile"
+	@echo "  make deps-linux      - Install what the Brewfile cannot provide on Linux"
 	@echo "  make tmux-plugins    - Show how to install tmux plugins"
 	@echo ""
 	@echo "Dotfiles:"
@@ -173,6 +174,17 @@ deps:
 	@brew bundle
 	@echo "Dependencies installed!"
 #  2>/dev/null || true
+
+# Everything the Brewfile cannot provide on Linux: the two formulae with no
+# Linux build, and the tools that are macOS casks upstream. Idempotent.
+# Set SKIP_GUI=1 on headless boxes to omit VS Code and Chrome.
+deps-linux:
+ifeq ($(OS),linux)
+	@bash linux/install-extras.sh
+else
+	@echo "deps-linux is Linux-only (detected: $(OS)). The Brewfile covers macOS."
+endif
+
 install:
 	@echo "Installing dotfiles..."
 	@# Install $HOME files first (e.g., ~/.zshenv)

@@ -12,10 +12,15 @@ export PATH=$HOME/.local/bin:$PATH
 # Tmux session scripts
 export PATH="$XDG_CONFIG_HOME/tmux/bin:$PATH"
 
-# Homebrew (macOS only)
-# Sets up PATH, FPATH (for completions), MANPATH, and INFOPATH
-if [[ "$OSTYPE" == "darwin"* ]]; then
+# Homebrew
+# Sets up PATH, FPATH (for completions), MANPATH, and INFOPATH, and exports
+# HOMEBREW_PREFIX which later modules use instead of hardcoding a path.
+# The prefix differs by platform: /opt/homebrew on Apple Silicon,
+# /home/linuxbrew/.linuxbrew on Linux.
+if [[ "$DOTFILES_OS" == "macos" && -x /opt/homebrew/bin/brew ]]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ "$DOTFILES_OS" == "linux" && -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 fi
 
 # LM Studio CLI (if exists)

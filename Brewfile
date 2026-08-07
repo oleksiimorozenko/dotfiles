@@ -53,9 +53,12 @@ brew "fzf"                     # Fuzzy finder
 # ------------------------------------------------------------------------------
 brew "git"                     # Version control
 brew "git-delta"               # Syntax-highlighting pager for git
-cask "git-credential-manager"  # Git Credential Manager for secure authentication
+if OS.mac?
+  cask "git-credential-manager" # Git Credential Manager for secure authentication
+end
 brew "gh"                      # GitHub CLI
 brew "gitleaks"                # Audit git repos for secrets
+brew "bitwarden-cli"           # Bitwarden vault CLI (secrets retrieval; desktop app is separate)
 brew "act"                     # Run GitHub Actions locally
 brew "action-validator"        # Validate GitHub Action YAML files
 brew "pre-commit"              # Git hooks framework
@@ -88,7 +91,9 @@ brew "watch"                   # Execute program periodically
 # Network Tools
 # ------------------------------------------------------------------------------
 brew "wget"                    # Internet file retriever
-brew "telnet"                  # TELNET client
+if OS.mac?
+  brew "telnet"                # No Linux bottle; `apt install telnet` there
+end
 brew "arping"                  # Check MAC addresses on LAN
 brew "ipcalc"                  # IP network calculator
 brew "pssh"                    # Parallel SSH
@@ -120,7 +125,12 @@ brew "ansible"                 # Configuration management
 # Terraform ecosystem
 brew "hashicorp/tap/terraform" # Infrastructure as Code (tap needs `brew trust`; removed from core under BUSL)
 # brew "terragrunt"            # Terraform wrapper
-brew "tflint"                  # Terraform linter
+if OS.mac?
+  brew "tflint"                # Terraform linter (macOS only on brew: not in
+                               # homebrew-core for Linux, and terraform-linters/tap
+                               # ships it as a cask. On Linux install via the
+                               # upstream script instead.)
+end
 brew "tfsec"                   # Terraform security scanner
 brew "terraform-docs"          # Generate Terraform documentation
 brew "terracognita"            # Import existing infra to Terraform
@@ -165,47 +175,61 @@ brew "lima"                    # Linux virtual machines
 brew "redis"                   # In-memory data store
 
 # ------------------------------------------------------------------------------
+# Agent / session runtime
+# ------------------------------------------------------------------------------
+brew "herdr"                   # Keeps coding-agent (Claude Code) sessions alive across
+                               # disconnects; detach/reattach from any machine. Per-user server.
+
+# ------------------------------------------------------------------------------
 # Fun
 # ------------------------------------------------------------------------------
 brew "cowsay"                  # Configurable talking cow
 
-# ------------------------------------------------------------------------------
-# GUI Applications (Casks)
-# ------------------------------------------------------------------------------
-# Terminal
-cask "ghostty"                 # GPU-accelerated terminal
-tap "manaflow-ai/cmux"         # needs `brew trust`
-cask "cmux"                    # AI agent terminal with vertical tabs
+# ==============================================================================
+# macOS only
+# ==============================================================================
+# Casks, fonts and Mac App Store entries are macOS concepts. Without this
+# guard `brew bundle` aborts on Linux, which is why the "Linux fully
+# supported" claim in the README stopped being true once casks were added.
+if OS.mac?
+  # ----------------------------------------------------------------------------
+  # GUI Applications (Casks)
+  # ----------------------------------------------------------------------------
+  # Terminal
+  cask "ghostty"                 # GPU-accelerated terminal
+  tap "manaflow-ai/cmux"         # needs `brew trust`
+  cask "cmux"                    # AI agent terminal with vertical tabs
 
-# AI Assistant Tools
-cask "claude-code"             # Terminal-based AI coding assistant
+  # AI Assistant Tools
+  cask "claude-code"             # Terminal-based AI coding assistant
 
-# Databases
-cask "medis"                   # Modern Redis GUI
+  # Databases
+  cask "medis"                   # Modern Redis GUI
 
-# Kubernetes
-cask "freelens"                # Kubernetes IDE
+  # Kubernetes
+  cask "freelens"                # Kubernetes IDE
 
-# Browsers
-# cask "firefox"
-# cask "google-chrome"
+  # Browsers
+  # cask "firefox"
+  # cask "google-chrome"
 
-# Editors
-cask "visual-studio-code"
+  # Editors
+  cask "visual-studio-code"
 
-# Productivity
-# cask "rectangle"             # Window management
-# cask "maccy"                 # Clipboard manager
+  # Productivity
+  # cask "rectangle"             # Window management
+  # cask "maccy"                 # Clipboard manager
 
-# ------------------------------------------------------------------------------
-# Fonts
-# ------------------------------------------------------------------------------
-cask "font-jetbrains-mono"     # Monospace font with ligatures
+  # ----------------------------------------------------------------------------
+  # Fonts
+  # ----------------------------------------------------------------------------
+  cask "font-jetbrains-mono"     # Monospace font with ligatures
 
-# ------------------------------------------------------------------------------
-# Mac App Store (requires `mas` CLI)
-# ------------------------------------------------------------------------------
-# mas "Xcode", id: 497799835
-# mas "Keynote", id: 409183694
-# mas "Pages", id: 409201541
-# mas "Numbers", id: 409203825
+  # ----------------------------------------------------------------------------
+  # Mac App Store (requires `mas` CLI)
+  # ----------------------------------------------------------------------------
+  # mas "Xcode", id: 497799835
+  # mas "Keynote", id: 409183694
+  # mas "Pages", id: 409201541
+  # mas "Numbers", id: 409203825
+end

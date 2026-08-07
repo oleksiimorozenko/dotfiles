@@ -70,11 +70,13 @@ _fzf_compgen_dir() {
 # ------------------------------------------------------------------------------
 
 # Source fzf key bindings and completion
+# HOMEBREW_PREFIX comes from `brew shellenv` in 10-paths.zsh, so this works on
+# both /opt/homebrew and /home/linuxbrew/.linuxbrew without hardcoding either.
 if [[ -f ~/.fzf.zsh ]]; then
   source ~/.fzf.zsh
-elif [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]]; then
-  source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
-  source /opt/homebrew/opt/fzf/shell/completion.zsh
+elif [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh" ]]; then
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/key-bindings.zsh"
+  source "$HOMEBREW_PREFIX/opt/fzf/shell/completion.zsh"
 fi
 
 # ------------------------------------------------------------------------------

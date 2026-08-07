@@ -10,10 +10,10 @@ _comp_options+=(globdots)
 
 # Only run completions if the completion system is loaded
 if (( $+functions[compdef] )); then
-  # Packer (if installed)
+  # Packer (if installed). Resolve the real binary rather than guessing a
+  # prefix, so this works on Apple Silicon, linuxbrew and /usr/local alike.
   if command -v packer &> /dev/null; then
-    complete -o nospace -C /opt/homebrew/bin/packer packer 2>/dev/null || \
-    complete -o nospace -C /usr/local/bin/packer packer 2>/dev/null
+    complete -o nospace -C "$(command -v packer)" packer 2>/dev/null
   fi
 
   # UV (if installed)
