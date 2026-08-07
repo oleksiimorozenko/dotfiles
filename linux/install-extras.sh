@@ -114,6 +114,36 @@ else
   else
     echo "already installed"
   fi
+
+  # Password managers. Desktop apps for vault management; passkeys are handled
+  # by each product's browser extension (installed per browser profile).
+  log "1Password (desktop + CLI, apt repo)"
+  if ! have 1password; then
+    curl -sS https://downloads.1password.com/linux/keys/1password.asc \
+      | sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
+    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main' \
+      | sudo tee /etc/apt/sources.list.d/1password.list >/dev/null
+    # 1Password's apt package requires a debsig policy to verify
+    sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/
+    curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol \
+      | sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol >/dev/null
+    sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
+    curl -sS https://downloads.1password.com/linux/keys/1password.asc \
+      | sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq 1password 1password-cli
+  else
+    echo "already installed"
+  fi
+
+  log "Bitwarden (desktop, Flatpak)"
+  if ! flatpak list 2>/dev/null | grep -q com.bitwarden.desktop; then
+    sudo apt-get install -y -qq flatpak
+    sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    sudo flatpak install -y --noninteractive flathub com.bitwarden.desktop
+  else
+    echo "already installed"
+  fi
 fi
 
 # ------------------------------------------------------------------------------
