@@ -30,6 +30,12 @@ next_tab = "ctrl+shift+right"
 previous_agent = "prefix+,"
 next_agent = "prefix+."
 
+[session]
+# After a herdr server restart (e.g. VM reboot), resume AI-agent panes back into
+# their native conversations. Works because the Claude integration is installed
+# (herdr integration install -> ~/.claude/hooks/herdr-agent-state.sh).
+resume_agents_on_restore = true
+
 [ui]
 # Label each pane's border with its agent (which Claude session it is).
 show_agent_labels_on_pane_borders = true
