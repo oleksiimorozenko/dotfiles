@@ -1,0 +1,23 @@
+# herdr — terminal workspace manager for AI coding agents
+# Stowed to ~/.config/herdr/config.toml. Validate with `herdr config check`;
+# apply to a running server with `herdr server reload-config`.
+#
+# herdr's built-in v2 keybindings are already tmux-style (prefix+h/j/k/l panes,
+# prefix+c new tab, prefix+v / prefix+- splits, prefix+z zoom, prefix+[ copy,
+# prefix+n/p tabs, prefix+1..9 tab switch), so this only changes the prefix to
+# match the tmux muscle memory (C-a) and fills in the navigations herdr leaves
+# unset. Everything not listed keeps its default.
+[keys]
+# Prefix: align with tmux (tmux.conf sets `prefix C-a`). Default was ctrl+b.
+prefix = "ctrl+a"
+
+# Workspace cycling (herdr leaves these unset). tmux-session convention: ( ).
+# prefix+w still opens the workspace picker.
+previous_workspace = "prefix+("
+next_workspace = "prefix+)"
+
+# Agent cycling (herdr leaves these unset). Agents are the running Claude
+# sessions; these jump between them, which pairs with herdr's "which one needs
+# input" status tracking. prefix+g opens the full session navigator.
+previous_agent = "prefix+,"
+next_agent = "prefix+."
