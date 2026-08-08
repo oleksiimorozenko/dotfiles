@@ -4,10 +4,11 @@
 # ==============================================================================
 # Miscellaneous Settings
 # ==============================================================================
-# Zsh autosuggestions
-if [[ "$DOTFILES_OS" == "macos" ]] && command -v brew &>/dev/null; then
-    source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-elif [[ "$DOTFILES_OS" == "linux" ]]; then
-    [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
-        source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+# Zsh autosuggestions. Prefer the brew copy ($HOMEBREW_PREFIX, set in
+# 10-paths.zsh) since both macOS and Linux use brew here; the old Linux branch
+# only checked /usr/share (apt) and so loaded nothing on the linuxbrew VM.
+if [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+    source "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+elif [[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 fi
