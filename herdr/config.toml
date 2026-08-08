@@ -14,10 +14,15 @@ onboarding = false
 # Prefix: align with tmux (tmux.conf sets `prefix C-a`). Default was ctrl+b.
 prefix = "ctrl+a"
 
-# Workspace cycling (herdr leaves these unset). tmux-session convention: ( ).
-# prefix+w still opens the workspace picker.
-previous_workspace = "prefix+("
-next_workspace = "prefix+)"
+# Workspace cycling with Ctrl+Shift+Up/Down (direct, no prefix). prefix+w still
+# opens the workspace picker.
+previous_workspace = "ctrl+shift+up"
+next_workspace = "ctrl+shift+down"
+
+# Tab cycling with Ctrl+Shift+Left/Right (direct). This replaces the default
+# prefix+p / prefix+n for these actions.
+previous_tab = "ctrl+shift+left"
+next_tab = "ctrl+shift+right"
 
 # Agent cycling (herdr leaves these unset). Agents are the running Claude
 # sessions; these jump between them, pairing with herdr's "which one needs
