@@ -181,6 +181,15 @@ brew "herdr"                   # Keeps coding-agent (Claude Code) sessions alive
                                # disconnects; detach/reattach from any machine. Per-user server.
 
 # ------------------------------------------------------------------------------
+# Input automation (mouse/keyboard)
+# ------------------------------------------------------------------------------
+if OS.mac?
+  brew "cliclick"              # macOS mouse/keyboard automation (used by ol.sh
+                               # keep-awake nudge). Linux equivalent is xdotool,
+                               # installed via deps-linux.
+end
+
+# ------------------------------------------------------------------------------
 # Fun
 # ------------------------------------------------------------------------------
 brew "cowsay"                  # Configurable talking cow

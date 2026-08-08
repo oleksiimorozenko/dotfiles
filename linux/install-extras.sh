@@ -54,6 +54,11 @@ sudo apt-get install -y -qq fonts-jetbrains-mono
 log "Kitty terminal"
 sudo apt-get install -y -qq kitty
 
+# xdotool: X11 mouse/keyboard automation, the Linux counterpart to macOS cliclick
+# (ol.sh keep-awake nudge). Needs an X11 session (xrdp provides one).
+log "xdotool (cliclick equivalent for ol.sh)"
+sudo apt-get install -y -qq xdotool
+
 # ------------------------------------------------------------------------------
 # Claude Code: CLI and desktop app
 # ------------------------------------------------------------------------------
@@ -141,6 +146,25 @@ else
     sudo apt-get install -y -qq flatpak
     sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     sudo flatpak install -y --noninteractive flathub com.bitwarden.desktop
+  else
+    echo "already installed"
+  fi
+
+  # Ensure flatpak + flathub for the desktop apps below (idempotent if Bitwarden
+  # already set them up).
+  sudo apt-get install -y -qq flatpak
+  sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+  log "Obsidian (desktop, Flatpak)"
+  if ! flatpak list 2>/dev/null | grep -q md.obsidian.Obsidian; then
+    sudo flatpak install -y --noninteractive flathub md.obsidian.Obsidian
+  else
+    echo "already installed"
+  fi
+
+  log "Slack (desktop, Flatpak)"
+  if ! flatpak list 2>/dev/null | grep -q com.slack.Slack; then
+    sudo flatpak install -y --noninteractive flathub com.slack.Slack
   else
     echo "already installed"
   fi
