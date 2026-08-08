@@ -30,6 +30,18 @@ next_tab = "ctrl+shift+right"
 previous_agent = "prefix+,"
 next_agent = "prefix+."
 
+# Splits: | for a vertical divider (side-by-side), - for horizontal (stacked).
+# If herdr's vertical/horizontal naming produces the opposite orientation, swap
+# these two values.
+split_vertical = "prefix+|"
+split_horizontal = "prefix+minus"
+
+# Pane focus with Ctrl+Alt+arrows (direct, no prefix). Replaces prefix+h/j/k/l.
+focus_pane_left = "ctrl+alt+left"
+focus_pane_down = "ctrl+alt+down"
+focus_pane_up = "ctrl+alt+up"
+focus_pane_right = "ctrl+alt+right"
+
 [session]
 # After a herdr server restart (e.g. VM reboot), resume AI-agent panes back into
 # their native conversations. Works because the Claude integration is installed
