@@ -66,6 +66,7 @@ awsgm() {
         echo "Create $config_file with:"
         echo "  sso_session=your-sso-session-name"
         echo "  profiles=profile1,profile2,profile3"
+        echo "  headless=true   # optional: never open a browser (RDP/herdr boxes)"
         echo ""
         echo "Example:"
         echo "  sso_session=MyCompanySSO"
@@ -76,6 +77,7 @@ awsgm() {
     # Parse config file
     local session_name=""
     local profiles_str=""
+    local headless=""
 
     while IFS='=' read -r key value; do
         # Skip empty lines and comments
@@ -88,6 +90,7 @@ awsgm() {
         case "$key" in
             sso_session) session_name="$value" ;;
             profiles) profiles_str="$value" ;;
+            headless) headless="$value" ;;
         esac
     done < "$config_file"
 
@@ -111,7 +114,14 @@ awsgm() {
     # Check if SSO session is active, start if needed
     if ! awsom session status --session-name "$session_name" --json | grep -q '"active":true'; then
         echo "SSO session not active, logging in..."
-        awsom session login --session-name "$session_name"
+        # Force --headless when configured or over SSH. awsom's auto-detect keys
+        # off $DISPLAY, so an active xrdp/Cinnamon session makes it open a browser
+        # on the RDP screen instead of printing the device code in the terminal.
+        local login_args=(--session-name "$session_name")
+        if [[ "$headless" == "true" || -n "$SSH_CONNECTION" ]]; then
+            login_args+=(--headless)
+        fi
+        awsom session login "${login_args[@]}"
 
         # Wait for session to become active (token may not be immediately available)
         echo "Waiting for session to be ready..."
