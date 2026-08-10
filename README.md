@@ -235,6 +235,32 @@ Create `~/.config/git/config.local`:
 reload  # or: exec zsh
 ```
 
+### 6. Wire Claude Code config (optional)
+
+Link `~/.claude` from this repo (public tier: `CLAUDE.md`, `style`, `principles`,
+`agents`) plus a context vault's `_claude/` (private tier: `context`, `git`,
+`mcp`, `settings.json`, and so on):
+
+```bash
+make claude VAULT=~/obsidian/<context>
+```
+
+`VAULT` has no default: this repo is public and shared across contexts, so it
+must not name a vault, and `make claude` with it unset errors with a reminder.
+It is idempotent and never clobbers a real file. Run it once per user/context on
+each machine. It is deliberately **not** part of `make install`, because the
+bootstrap needs the vault present and would fail where it is absent.
+
+To avoid passing `VAULT=` on every run, copy `vault.local.mk.example` to
+`vault.local.mk` (gitignored) and set `VAULT` there; `make claude` then picks it
+up automatically. A command-line `VAULT=` still overrides it.
+
+**herdr note:** herdr installs a `SessionStart` hook whose command is a
+machine-specific absolute path. Keep that hook, and any per-machine overrides
+such as `tui`, in `~/.claude/settings.local.json`, which merges on top of the
+vault's `settings.json` and is not shared. Do not put it in the vault
+`settings.json`: the path would be wrong on every other machine.
+
 ## Package Structure
 
 Each directory is a **stow package** that can be installed independently:

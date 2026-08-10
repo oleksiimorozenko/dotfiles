@@ -1,0 +1,4 @@
+# Machine-local Claude vault path. Copy this file to `vault.local.mk` (which is
+# gitignored) and set VAULT to the context vault for THIS clone, so `make claude`
+# uses it without a VAULT= argument. Never commit the real vault.local.mk.
+VAULT = $(HOME)/obsidian/<context>

@@ -19,6 +19,7 @@ local/
 # Claude local files (also in the global ignore; committed so every clone is covered)
 *.local.md
 .claude/settings.local.json
+vault.local.mk
 
 # Stow test files
 test-*/

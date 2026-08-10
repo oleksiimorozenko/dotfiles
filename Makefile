@@ -1,4 +1,4 @@
-.PHONY: install uninstall restow list help clean bootstrap deps deps-linux prereq-check prereq-install tmux-plugins
+.PHONY: install uninstall restow list help clean bootstrap deps deps-linux prereq-check prereq-install tmux-plugins claude
 
 # Detect operating system
 UNAME := $(shell uname -s)
@@ -10,6 +10,16 @@ else
     OS := unknown
 endif
 
+# Machine-local vault path (gitignored): copy vault.local.mk.example to
+# vault.local.mk and set VAULT there, so `make claude` needs no VAULT= argument.
+-include vault.local.mk
+
+# Context vault for Claude config wiring. No default on purpose: this repo is
+# public and shared across contexts, so it must not name a vault. Set it per run
+# (VAULT=... on the command line) or via vault.local.mk above:
+#   make claude VAULT=~/obsidian/<context>
+VAULT ?=
+
 help:
 	@echo "Dotfiles Management (Platform: $(OS))"
 	@echo ""
@@ -19,6 +29,7 @@ help:
 	@echo "  make bootstrap       - Install Homebrew, Oh-My-Zsh, fzf-tab, and TPM"
 	@echo "  make deps            - Install all dependencies via Brewfile"
 	@echo "  make deps-linux      - Install what the Brewfile cannot provide on Linux"
+	@echo "  make claude          - Wire ~/.claude from dotfiles + vault (set VAULT=~/obsidian/<context>)"
 	@echo "  make tmux-plugins    - Show how to install tmux plugins"
 	@echo ""
 	@echo "Dotfiles:"
@@ -183,6 +194,21 @@ ifeq ($(OS),linux)
 	@bash linux/install-extras.sh
 else
 	@echo "deps-linux is Linux-only (detected: $(OS)). The Brewfile covers macOS."
+endif
+
+# Wire ~/.claude from two sources: this repo's claude/ (public tier) and a
+# context vault's _claude/ (private tier). Idempotent; never clobbers real
+# files. Deliberately NOT part of `install`: the script cd's into VAULT and
+# would fail on a machine that lacks it. The herdr SessionStart hook is
+# machine-local (absolute path), so it lives in ~/.claude/settings.local.json.
+claude:
+ifeq ($(strip $(VAULT)),)
+	@echo "Error: VAULT is not set. Point it at your context vault, e.g.:" >&2
+	@echo "  make claude VAULT=~/obsidian/<context>" >&2
+	@exit 1
+else
+	@echo "Wiring ~/.claude from dotfiles (public) + $(VAULT) (private)..."
+	@./claude/bin/bootstrap.sh $(VAULT)
 endif
 
 install:
