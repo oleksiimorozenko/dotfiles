@@ -168,6 +168,23 @@ else
   else
     echo "already installed"
   fi
+
+  # AWS Client VPN desktop app, needed for SAML/federated Client VPN endpoints
+  # (plain openvpn can't do the SAML flow). Ubuntu-only upstream; the apt repo's
+  # codename is literally "ubuntu" for every version.
+  if (. /etc/os-release; [ "$ID" = ubuntu ]); then
+    log "AWS VPN Client (apt repo)"
+    if ! dpkg -s awsvpnclient >/dev/null 2>&1; then
+      wget -qO- https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo/awsvpnclient_public_key.asc \
+        | sudo tee /etc/apt/trusted.gpg.d/awsvpnclient_public_key.asc >/dev/null
+      echo "deb [arch=amd64] https://d20adtppz83p9s.cloudfront.net/GTK/latest/debian-repo ubuntu main" \
+        | sudo tee /etc/apt/sources.list.d/aws-vpn-client.list >/dev/null
+      sudo apt-get update -qq
+      sudo apt-get install -y -qq awsvpnclient
+    else
+      echo "already installed"
+    fi
+  fi
 fi
 
 # ------------------------------------------------------------------------------

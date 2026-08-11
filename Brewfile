@@ -154,6 +154,7 @@ brew "siderolabs/tap/talosctl" # Talos Linux Kubernetes CLI
 # ------------------------------------------------------------------------------
 tap "oleksiimorozenko/tap"          # needs `brew trust` (personal tap)
 brew "oleksiimorozenko/tap/awsom"  # k9s-like TUI for AWS SSO
+brew "awscli"                       # AWS CLI v2
 
 # ------------------------------------------------------------------------------
 # Azure
