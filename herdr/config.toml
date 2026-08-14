@@ -28,7 +28,7 @@ next_tab = "ctrl+shift+right"
 # sessions; these jump between them, pairing with herdr's "which one needs
 # input" status tracking. prefix+g opens the full session navigator.
 previous_agent = "ctrl+shift+,"
-next_agent = "alt+shift+."
+next_agent = "ctrl+shift+."
 
 # Splits: | for a vertical divider (side-by-side), - for horizontal (stacked).
 # If herdr's vertical/horizontal naming produces the opposite orientation, swap
