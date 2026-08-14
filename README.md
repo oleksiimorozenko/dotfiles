@@ -58,8 +58,8 @@ Personal dotfiles managed with GNU Stow and XDG Base Directory compliance.
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/dotfiles.git ~/git/root/dotfiles
-cd ~/git/root/dotfiles
+git clone https://github.com/YOUR_USERNAME/dotfiles.git ~/git/YOUR_USERNAME/dotfiles
+cd ~/git/YOUR_USERNAME/dotfiles
 
 # Bootstrap: Install Homebrew, Oh-My-Zsh, and fzf-tab plugin
 make bootstrap
@@ -81,8 +81,8 @@ make install
 make prereq-install
 
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/dotfiles.git ~/git/root/dotfiles
-cd ~/git/root/dotfiles
+git clone https://github.com/YOUR_USERNAME/dotfiles.git ~/git/YOUR_USERNAME/dotfiles
+cd ~/git/YOUR_USERNAME/dotfiles
 
 # Bootstrap: Install Homebrew, Oh-My-Zsh, and fzf-tab plugin
 make bootstrap
@@ -300,7 +300,7 @@ man <TAB>     # Shows man page preview
 ### zoxide - Smart Directory Jumping
 
 ```bash
-z dotfiles    # Jump to ~/git/root/dotfiles
+z dotfiles    # Jump to ~/git/YOUR_USERNAME/dotfiles
 z api         # Jump to most frecent directory matching "api"
 zi            # Interactive directory selection with fzf
 ```
