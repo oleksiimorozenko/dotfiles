@@ -27,8 +27,8 @@ next_tab = "ctrl+shift+right"
 # Agent cycling (herdr leaves these unset). Agents are the running Claude
 # sessions; these jump between them, pairing with herdr's "which one needs
 # input" status tracking. prefix+g opens the full session navigator.
-previous_agent = "prefix+,"
-next_agent = "prefix+."
+previous_agent = "ctrl+shift+,"
+next_agent = "alt+shift+."
 
 # Splits: | for a vertical divider (side-by-side), - for horizontal (stacked).
 # If herdr's vertical/horizontal naming produces the opposite orientation, swap
@@ -52,6 +52,7 @@ resume_agents_on_restore = true
 # Label each pane's border with its agent (which Claude session it is).
 show_agent_labels_on_pane_borders = true
 
+agent_panel_sort = "priority"
 [ui.toast]
 # Deliver notifications as OS/system toasts. This is what surfaces a remote
 # session's "needs input" on the machine you attach from.
