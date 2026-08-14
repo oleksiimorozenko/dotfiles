@@ -235,6 +235,18 @@ Create `~/.config/git/config.local`:
 reload  # or: exec zsh
 ```
 
+**Set zsh as your login shell.** Bootstrap installs oh-my-zsh but does not change
+your login shell, and a freshly created Linux user usually defaults to bash, so
+new SSH/RDP sessions would still start bash. Point it at zsh (adding zsh to
+`/etc/shells` first if it is missing):
+
+```bash
+grep -qxF "$(command -v zsh)" /etc/shells || echo "$(command -v zsh)" | sudo tee -a /etc/shells
+sudo chsh -s "$(command -v zsh)" "$USER"
+```
+
+Log out and back in (or reconnect) for it to take effect.
+
 ### 6. Wire Claude Code config (optional)
 
 Link `~/.claude` from this repo (public tier: `CLAUDE.md`, `style`, `principles`,

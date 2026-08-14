@@ -178,7 +178,8 @@ bootstrap:
 	@echo "Next steps:"
 	@echo "  1. Run: make deps"
 	@echo "  2. Run: make install"
-	@echo "  3. Start tmux and press Ctrl-a + I to install plugins"
+	@echo "  3. Set zsh as your login shell: sudo chsh -s \$$(command -v zsh) \$$USER"
+	@echo "  4. Start tmux and press Ctrl-a + I to install plugins"
 
 deps:
 	@echo "Installing dependencies from Brewfile..."
