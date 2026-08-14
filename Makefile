@@ -260,9 +260,15 @@ list:
 	@echo "Available packages:"
 	@find . -maxdepth 1 -type d ! -name '.*' ! -name 'home' | sed 's#\./##' | sort
 
+# Remove dead symlinks left behind when the clone moves or a package is renamed.
+# Covers both stow targets: ~/.config (most packages) and $HOME (the home package).
+# Uses `-type l ! -exec test -e {} \;` rather than `-xtype l`: the latter is GNU-only
+# and BSD/macOS find rejects it, which silently no-ops this target on a Mac.
+# Errors are deliberately not muted: a clean that quietly fails is worse than a loud one.
 clean:
 	@echo "Cleaning up dead symlinks..."
-	@find ~/.config -xtype l -delete 2>/dev/null || true
+	@find ~/.config -type l ! -exec test -e {} \; -delete
+	@find ~ -maxdepth 1 -type l ! -exec test -e {} \; -delete
 	@echo "Dead symlinks removed"
 
 tmux-plugins:
