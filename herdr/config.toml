@@ -54,9 +54,13 @@ show_agent_labels_on_pane_borders = true
 
 agent_panel_sort = "priority"
 [ui.toast]
-# Deliver notifications as OS/system toasts. This is what surfaces a remote
-# session's "needs input" on the machine you attach from.
-delivery = "system"
+# In-app toast rendered inside the herdr UI (see [ui.toast.herdr] position).
+# Chosen after: "system" makes macOS attribute the osascript popup to Script
+# Editor (clicking it launches Script Editor), and "terminal" produced no visible
+# toast over a remote attach (the OSC-9 notification is not forwarded to the outer
+# terminal). In-app always renders and needs no OS handoff. Audio cues still fire,
+# and the Moshi phone push covers away-from-desk.
+delivery = "herdr"
 
 [theme]
 name = "catppuccin"
