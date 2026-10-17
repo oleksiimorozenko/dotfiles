@@ -60,7 +60,8 @@ done
 S="$VAULT/_claude/settings.json"
 if [[ -f "$S" ]]; then
   grep -q '/Users/' "$S" && finding "settings.json: literal /Users/ path (use ~; templates/settings-snippets.md)"
-  grep -q 'docstyle-lint\.sh' "$S" || finding "settings.json: docstyle PostToolUse hook not wired"
+  jq -e '[.hooks.PreToolUse[]?.hooks[]?.command] | any(test("docstyle-lint\\.sh"))' "$S" >/dev/null 2>&1 \
+    || finding "settings.json: docstyle .md hook not wired under PreToolUse (templates/settings-snippets.md)"
   grep -q '"deny"' "$S" || finding "settings.json: no secrets deny block"
   grep -q 'autoMemoryDirectory' "$S" || finding "settings.json: autoMemoryDirectory not set"
   grep -q 'SessionEnd' "$S" || finding "settings.json: no SessionEnd nudge"

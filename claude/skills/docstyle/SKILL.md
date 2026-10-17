@@ -18,7 +18,7 @@ Attribution: the pattern library and tiered vocabulary are adapted from [`avoid-
 
 ## Modes
 
-- **detect** — flag issues, no rewrite. Group by severity (P0/P1/P2), mark each as a clear problem or a judgment call. Use when auditing text you do not want altered.
+- **detect** — flag issues, no rewrite. Group by severity (P0/P1/P2), mark each as a clear problem or a judgment call. Use when auditing text you do not want altered. Start with the deterministic pass: `~/.claude/hooks/docstyle-lint.sh <file>`. For remote text (a Jira comment, a Confluence page), fetch it as Markdown where the tool offers it (the checker skips Markdown code, not HTML `<code>`), save it to a scratch `.txt` (a `.md` would be blocked by the write hook), and pass that path.
 - **rewrite** (default) — fix the issues, output the clean version, then a short "what changed", then run one corrective second pass to catch tells the first pass introduced. Stop after two passes.
 - **edit** — minimal, targeted in-place edits to the flagged spans only. Preserve passages that are already human, plus quotes and code. Re-read after to verify.
 
@@ -141,7 +141,7 @@ These mean text was pasted from a chat UI. Near-zero false positives.
 - **P1** — Tier 1 vocabulary, copula avoidance, negation frames, hedging.
 - **P2** — Tier 2/3 vocabulary, uniformity, polish. Fix by judgment and register.
 
-The deterministic lint hook (`hooks/docstyle-lint.sh`) covers the greppable P0 subset plus em-dashes and single-word bold on every `.md` write. This skill is the deeper, on-demand pass.
+The deterministic lint hook (`hooks/docstyle-lint.sh`) covers the greppable P0 subset plus em-dashes and single-word bold on the text of every `.md` write, before it lands. Run by hand on whole files it is the first step of detect mode. This skill is the deeper, on-demand pass.
 
 ## Self-reference escape hatch
 

@@ -42,11 +42,11 @@ Private key material and secret stores. Deliberately narrower than `~/.ssh/**`: 
 
 ## Hooks: docstyle
 
-PostToolUse on every .md write (all contexts). PreToolUse on Jira posts (contexts with a Jira MCP); pick the matcher for the server flavor and verify the tool names with `/mcp` before enabling.
+Both run as PreToolUse, so a violation is blocked before it lands. The `.md` hook goes in every context and checks only the text being written, so older content elsewhere in a file never blocks an edit. The prose hook goes in contexts with a Jira MCP; pick the matcher for the server flavor and verify the tool names with `/mcp` before enabling.
 
 ```json
 "hooks": {
-  "PostToolUse": [
+  "PreToolUse": [
     {
       "matcher": "Write|Edit",
       "hooks": [
@@ -54,9 +54,7 @@ PostToolUse on every .md write (all contexts). PreToolUse on Jira posts (context
           "command": "\"$HOME/.claude/hooks/docstyle-lint.sh\"",
           "statusMessage": "docstyle lint" }
       ]
-    }
-  ],
-  "PreToolUse": [
+    },
     {
       "matcher": "mcp__atlassian__(jira_add_comment|jira_create_issue|jira_update_issue)",
       "hooks": [
