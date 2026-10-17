@@ -2,13 +2,13 @@
 # Report-only convergence audit: how far this machine + a context vault are
 # from the unified layout (context-setup.md, part B). Changes nothing.
 # Exits 1 when anything needs attention.
-#   usage: claude/bin/audit.sh ~/obsidian/<ctx>
+#   usage: ai/bin/audit.sh ~/obsidian/<ctx>
 set -uo pipefail
 
 VAULT="${1:?usage: audit.sh <vault-path>}"
 VAULT="$(cd "$VAULT" && pwd)"
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SRC="$DOTFILES/claude"
+SRC="$DOTFILES/ai"
 C="$HOME/.claude"
 N=0
 finding() { printf ' - %s\n' "$1"; N=$((N + 1)); }

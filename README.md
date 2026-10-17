@@ -55,7 +55,7 @@ Personal dotfiles managed with GNU Stow and XDG Base Directory compliance.
 ## Quick Start
 
 > **Clone location matters.** Assume the clone lives at `~/git/<user>/dotfiles`.
-> `zsh/zsh.d/68-herdr.zsh` and the commands under `claude/commands/` reference that
+> `zsh/zsh.d/68-herdr.zsh` and the commands under `ai/commands/` reference that
 > path directly, so a clone elsewhere leaves them pointing at nothing. If you do move
 > it, update those references and re-run `make clean && make restow && make claude`.
 

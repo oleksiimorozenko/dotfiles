@@ -19,6 +19,8 @@
 --ignore=local/
 --ignore=macos/
 --ignore=\.claude
+# ai/ is wired into ~/.claude by `make claude`, not stowed into ~/.config
+--ignore=^ai
 
 # Verbose output (comment out for quiet mode)
 --verbose

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Wire ~/.claude from two sources: this dotfiles repo (public) and a context
 # vault (private). Idempotent; never clobbers a real file.
-#   usage: claude/bin/bootstrap.sh ~/obsidian/<ctx>
+#   usage: ai/bin/bootstrap.sh ~/obsidian/<ctx>
 set -euo pipefail
 
 VAULT="${1:?usage: bootstrap.sh <vault-path>}"
 VAULT="$(cd "$VAULT" && pwd)"
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SRC="$DOTFILES/claude"
+SRC="$DOTFILES/ai"
 CLAUDE_DIR="$HOME/.claude"
 mkdir -p "$CLAUDE_DIR"
 shopt -s nullglob

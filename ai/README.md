@@ -1,6 +1,6 @@
-# Claude Code config (public)
+# AI assistant config (public)
 
-The shareable part of my Claude Code setup, symlinked into `~/.claude`.
+The shareable part of my AI assistant setup: the tool-neutral `AGENTS.md` plus the Claude Code config around it, symlinked into `~/.claude`.
 
 ## Layout
 
@@ -10,8 +10,8 @@ The shareable part of my Claude Code setup, symlinked into `~/.claude`.
 - `hooks/`: docstyle enforcement. `docstyle-check.sh` is the shared checker; `docstyle-lint.sh` (PreToolUse) gates the text of `.md` writes before it lands and checks whole files when run by hand (`docstyle-lint.sh FILE...`), `docstyle-lint-prose.sh` (PreToolUse) gates prose posts for the MCP tools you list in `docstyle-prose-sources.tsv` (a documented, example-only base) plus a per-context overlay passed as a command arg. The engine and handlers live here; live rows are declared per context.
 - `skills/docstyle/`: the docstyle skill (registers, tiered vocabulary, detect/rewrite/edit passes).
 - `commands/`: shared slash commands available in every context (e.g. `/promote`, which generalizes a vault-local pattern into this repo, desensitized).
-- `bin/bootstrap.sh`: wires `~/.claude` from this repo plus a context vault (idempotent; unlinks private-layer links left by another vault). `hooks/`, `skills/`, and `commands/` are linked per-entry into real dirs so public, private (vault), and machine-local entries can coexist. Usage: `claude/bin/bootstrap.sh ~/obsidian/<ctx>`.
-- `bin/audit.sh`: report-only convergence check for a context; prints what still diverges from the unified layout. Usage: `claude/bin/audit.sh ~/obsidian/<ctx>`.
+- `bin/bootstrap.sh`: wires `~/.claude` from this repo plus a context vault (idempotent; unlinks private-layer links left by another vault). `hooks/`, `skills/`, and `commands/` are linked per-entry into real dirs so public, private (vault), and machine-local entries can coexist. Usage: `ai/bin/bootstrap.sh ~/obsidian/<ctx>`.
+- `bin/audit.sh`: report-only convergence check for a context; prints what still diverges from the unified layout. Usage: `ai/bin/audit.sh ~/obsidian/<ctx>`.
 - `templates/`: per-context starting points (settings snippets, sync-vault and daily commands, daily note template, memory conventions, ticket-folder structure).
 - `context-setup.md`: new-machine setup and the convergence checklist for older contexts.
 

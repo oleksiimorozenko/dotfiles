@@ -197,7 +197,7 @@ else
 	@echo "deps-linux is Linux-only (detected: $(OS)). The Brewfile covers macOS."
 endif
 
-# Wire ~/.claude from two sources: this repo's claude/ (public tier) and a
+# Wire ~/.claude from two sources: this repo's ai/ (public tier) and a
 # context vault's _claude/ (private tier). Idempotent; never clobbers real
 # files. Deliberately NOT part of `install`: the script cd's into VAULT and
 # would fail on a machine that lacks it. The herdr SessionStart hook is
@@ -209,7 +209,7 @@ ifeq ($(strip $(VAULT)),)
 	@exit 1
 else
 	@echo "Wiring ~/.claude from dotfiles (public) + $(VAULT) (private)..."
-	@./claude/bin/bootstrap.sh $(VAULT)
+	@./ai/bin/bootstrap.sh $(VAULT)
 endif
 
 install:

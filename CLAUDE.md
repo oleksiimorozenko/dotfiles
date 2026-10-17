@@ -2,7 +2,7 @@
 
 Guidance for Claude Code (claude.ai/code) when working in this repository.
 
-This file covers architecture, invariants, and the traps that are not obvious from reading the tree. It deliberately does not restate content that lives in a file of its own. For package inventories read the `Brewfile`, for macOS defaults read `macos/settings.sh`, for the full keybinding reference read `tmux/README.md`, and for the Claude config tiers read `claude/README.md`. Those files are the source of truth; duplicating them here is how documentation goes stale.
+This file covers architecture, invariants, and the traps that are not obvious from reading the tree. It deliberately does not restate content that lives in a file of its own. For package inventories read the `Brewfile`, for macOS defaults read `macos/settings.sh`, for the full keybinding reference read `tmux/README.md`, and for the Claude config tiers read `ai/README.md`. Those files are the source of truth; duplicating them here is how documentation goes stale.
 
 ## Repository overview
 
@@ -14,7 +14,7 @@ Supported: macOS (Sonoma and later) and Linux (Ubuntu 22.04 and later). Windows 
 
 Assume the clone lives at `~/git/<user>/dotfiles`.
 
-This is a convention the repo depends on, not a preference. `zsh/zsh.d/68-herdr.zsh:12` guards on an absolute path and `zsh/zsh.d/68-herdr.zsh:13` exports the same path as `HERDR_CONFIG_PATH`. Both must name a file that exists, or the guard fails silently and herdr falls back to `~/.config/herdr/config.toml`. The commands in `claude/commands/lint-vault.md:10` and `claude/commands/promote.md:11` also spell the path out, because prose instructions cannot resolve it at runtime.
+This is a convention the repo depends on, not a preference. `zsh/zsh.d/68-herdr.zsh:12` guards on an absolute path and `zsh/zsh.d/68-herdr.zsh:13` exports the same path as `HERDR_CONFIG_PATH`. Both must name a file that exists, or the guard fails silently and herdr falls back to `~/.config/herdr/config.toml`. The commands in `ai/commands/lint-vault.md:10` and `ai/commands/promote.md:11` also spell the path out, because prose instructions cannot resolve it at runtime.
 
 Moving the clone breaks every symlink at once. See the repair sequence below.
 
@@ -26,9 +26,9 @@ The single most common source of confusion: this repo installs into three places
 |---|---|---|
 | `~/.config` | `stow --ignore=home .` (via `.stowrc`) | `make install`, `make restow` |
 | `~/` | `stow --dir=. --target=$HOME home` | `make install`, `make restow` |
-| `~/.claude` | `claude/bin/bootstrap.sh` | `make claude` |
+| `~/.claude` | `ai/bin/bootstrap.sh` | `make claude` |
 
-`~/.claude` is not a stow target. It is built by `claude/bin/bootstrap.sh`, which links the public tier from this repo and the private tier from a context vault. It is excluded from `make install` on purpose: the script resolves and enters `VAULT`, so it would fail on a machine without one.
+`~/.claude` is not a stow target. It is built by `ai/bin/bootstrap.sh`, which links the public tier from this repo and the private tier from a context vault. It is excluded from `make install` on purpose: the script resolves and enters `VAULT`, so it would fail on a machine without one.
 
 `bootstrap.sh` derives its own repo root from `${BASH_SOURCE[0]}` and writes absolute symlinks with `ln -sfn`, so it self-heals on re-run and never conflicts.
 
@@ -58,9 +58,10 @@ find ~/.config ~/.claude -type l ! -exec test -e {} \; -print
 
 `home/` must be stowed first and separately with `-t ~`, because it provides `~/.zshenv`, which sets `ZDOTDIR` and bootstraps everything else. `make install` already does this in the right order; manual stow runs must do the same.
 
-Two things to know about the ignore patterns:
+Three things to know about the ignore patterns:
 
-- Patterns are anchored regexes matched against each path segment, without a trailing slash. `--ignore=macos/` therefore never matches, and `macos/settings.sh` is stowed to `~/.config/macos/settings.sh` despite the entry.
+- Patterns are regexes matched against each path segment, without a trailing slash. `--ignore=macos/` therefore never matches, and `macos/settings.sh` is stowed to `~/.config/macos/settings.sh` despite the entry.
+- Stow anchors them at the end only (it appends `\z`, visible with `stow -n --verbose=4`). `--ignore=^ai` keeps `ai/` out of `~/.config`, since `make claude` wires it into `~/.claude`; without the `^`, any name ending in `ai` would match.
 - `--ignore=.*\.example$` does work, which is why `zsh/local/.zshrc.local.example` stays unstowed.
 
 Running bare `stow <package>` is not equivalent to `make install`. The Makefile stows the repo root as a single package, giving `~/.config/zsh/.zshrc`. A bare `stow zsh` stows the package contents instead, giving `~/.config/.zshrc` and `~/.config/zsh.d/`. Mixing the two leaves a stale duplicate tree. Use `make restow`.
@@ -99,7 +100,7 @@ Numeric prefixes give a deterministic order. `05` runs early so `$DOTFILES_OS` i
 
 ## Packages
 
-`bat`, `claude`, `eza`, `ghostty`, `git`, `glow`, `herdr`, `linux`, `macos`, `nano`, `obsidian`, `starship`, `tmux`, `zsh`, plus `home` (targets `~/`).
+`ai` (wired by `make claude`, not stowed), `bat`, `eza`, `ghostty`, `git`, `glow`, `herdr`, `linux`, `macos`, `nano`, `obsidian`, `starship`, `tmux`, `zsh`, plus `home` (targets `~/`).
 
 Several carry their own `README.md`; read it before changing the package.
 
@@ -168,7 +169,7 @@ fi
 
 ### Paths in committed files
 
-Write `~`-relative paths in configs, commands, and docs, and `$HOME` in scripts. Never a literal `/Users/<name>`. Permission rules resolve `~` against the real home and Bash rules match literal command text, so the allowlist only holds across machines if the text uses `~`. This mirrors the rule in `claude/README.md`.
+Write `~`-relative paths in configs, commands, and docs, and `$HOME` in scripts. Never a literal `/Users/<name>`. Permission rules resolve `~` against the real home and Bash rules match literal command text, so the allowlist only holds across machines if the text uses `~`. This mirrors the rule in `ai/README.md`.
 
 ## Local overrides
 

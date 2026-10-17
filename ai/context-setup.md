@@ -4,7 +4,7 @@ How a machine gets wired to this Claude config: the public layer from this repo,
 
 ## The architecture (three tiers)
 
-1. Public global config: this repo's `claude/` (`CLAUDE.md` index, `AGENTS.md`, `delegation.md`, `hooks/`, `skills/`). The single files are symlinked into `~/.claude`; `hooks/`, `skills/`, and `commands/` are real dirs there, populated by per-file symlinks so public (this repo), private (a vault's `_claude/`), and machine-local entries can coexist in one dir.
+1. Public global config: this repo's `ai/` (`CLAUDE.md` index, `AGENTS.md`, `delegation.md`, `hooks/`, `skills/`). The single files are symlinked into `~/.claude`; `hooks/`, `skills/`, and `commands/` are real dirs there, populated by per-file symlinks so public (this repo), private (a vault's `_claude/`), and machine-local entries can coexist in one dir.
 2. Private global config: the vault's `_claude/` (section files, `settings.json`, `commands/`), symlinked into `~/.claude`. The public `CLAUDE.md` imports every section by absolute path (`@~/.claude/...`); a missing private file simply no-ops.
 3. The vault itself: notes plus `memory/` (auto-memory travels with the vault via git).
 
@@ -13,8 +13,8 @@ One context is wired per machine; every machine shares the public layer.
 ## A. New machine or new context
 
 1. Clone this repo and the (private) context vault.
-2. Run `claude/bin/bootstrap.sh ~/obsidian/<ctx>`. It derives the repo location from itself, links the public files, links each `hooks/`/`skills/` entry into a real dir, then the vault's `_claude/` files and `commands/`. It never clobbers a real file.
-3. If the vault is new, create its `_claude/` from `claude/templates/`:
+2. Run `ai/bin/bootstrap.sh ~/obsidian/<ctx>`. It derives the repo location from itself, links the public files, links each `hooks/`/`skills/` entry into a real dir, then the vault's `_claude/` files and `commands/`. It never clobbers a real file.
+3. If the vault is new, create its `_claude/` from `ai/templates/`:
    - `settings.json`: assemble from the blocks in `templates/settings-snippets.md`, then add personal keys (model, theme, notifications).
    - `context.md` (who I am in this context) and `git.md` (branch and commit conventions, plus the vault sync carve-out). Add `operations.md`, `shell.md`, `projects.md`, `mcp.md`, `secrets.md` as they become useful.
    - `commands/`: copy `templates/sync-vault.md` and `templates/daily.md`, fill the placeholders. Copy `templates/daily-note-template.md` to `<vault>/daily/_template.md`.
@@ -25,8 +25,8 @@ One context is wired per machine; every machine shares the public layer.
 
 ## B. Converge an existing context
 
-0. Run `claude/bin/audit.sh ~/obsidian/<ctx>` for the mechanical findings list (links, settings gaps, hardcoded paths, memory naming). The steps below cover those findings plus the judgment calls the script can't see.
-1. Pull this repo, rerun `claude/bin/bootstrap.sh ~/obsidian/<ctx>`. This adds links older setups miss (`AGENTS.md`, `delegation.md`, `hooks/`, `skills/`) and drops broken ones left by renamed or removed files.
+0. Run `ai/bin/audit.sh ~/obsidian/<ctx>` for the mechanical findings list (links, settings gaps, hardcoded paths, memory naming). The steps below cover those findings plus the judgment calls the script can't see.
+1. Pull this repo, rerun `ai/bin/bootstrap.sh ~/obsidian/<ctx>`. This adds links older setups miss (`AGENTS.md`, `delegation.md`, `hooks/`, `skills/`) and drops broken ones left by renamed or removed files.
 2. `settings.json`, against `templates/settings-snippets.md`:
    - drop allow rules for built-in read-only commands (`ls`, `cat`, `grep`, `find`, `head`, `tail`, `wc`, `stat`, `du`, `sort`, `uniq`, `which`, read-only `git` forms); keep non-builtin tools and the vault `git -C` prefix rules
    - replace every literal `/Users/<name>` with the `~` form (file rules resolve `~`; Bash rules match literal command text, and commands are written with `~`)

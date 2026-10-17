@@ -6,9 +6,9 @@ argument-hint: "<what to promote, e.g. 'the runbook format' or _claude/commands/
 Take something that proved useful in the current context and land its generic core in the public dotfiles repo, so other contexts can pick it up. Sideways sharing between contexts happens **only** through this flow.
 
 1. Locate the source artifact(s): a command/skill in this vault's `_claude/`, a convention in a vault note, or a pattern the user describes from the current session.
-2. Split generic core from context specifics. The public repo's rule (see `claude/README.md`) is absolute: no org or client names, people, emails, account/tenant ids, hostnames, ticket keys, real machine paths, or secrets.
+2. Split generic core from context specifics. The public repo's rule (see `ai/README.md`) is absolute: no org or client names, people, emails, account/tenant ids, hostnames, ticket keys, real machine paths, or secrets.
 3. Desensitize: replace specifics with `<ctx>`-style placeholders. If a real value isn't yet captured in this vault's `_claude/` section files, move it there now, because the generic artifact must be able to find it at `~/.claude/<section>.md` on any machine.
-4. Land the generic artifact in `~/git/oleksiimorozenko/dotfiles/claude/` (assumes the dotfiles clone lives at `~/git/<user>/dotfiles`):
+4. Land the generic artifact in `~/git/oleksiimorozenko/dotfiles/ai/` (assumes the dotfiles clone lives at `~/git/<user>/dotfiles`):
    - reusable everywhere as-is → `commands/` or `skills/`
    - per-context starting point that needs `<ctx>` substitution → `templates/` (add the "copy to `<vault>/_claude/...`, replace `<ctx>`, delete this comment" header)
    - behavioral/style rule → merge into `AGENTS.md` (any tool), the Claude Code section of `CLAUDE.md` (Claude-only), or `delegation.md` (subagents)
