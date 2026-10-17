@@ -11,5 +11,5 @@ Take something that proved useful in the current context and land its generic co
 4. Land the generic artifact in `~/git/oleksiimorozenko/dotfiles/claude/` (assumes the dotfiles clone lives at `~/git/<user>/dotfiles`):
    - reusable everywhere as-is → `commands/` or `skills/`
    - per-context starting point that needs `<ctx>` substitution → `templates/` (add the "copy to `<vault>/_claude/...`, replace `<ctx>`, delete this comment" header)
-   - behavioral/style rule → merge into `style.md` / `principles.md` / `agents.md`
+   - behavioral/style rule → merge into `AGENTS.md` (any tool), the Claude Code section of `CLAUDE.md` (Claude-only), or `delegation.md` (subagents)
 5. Show the full diff. The dotfiles repo has **no auto-commit carve-out**: propose a conventional commit message and wait for explicit confirmation before committing; never push without being asked.

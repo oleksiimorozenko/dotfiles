@@ -4,7 +4,7 @@ How a machine gets wired to this Claude config: the public layer from this repo,
 
 ## The architecture (three tiers)
 
-1. Public global config: this repo's `claude/` (`CLAUDE.md` index, `style.md`, `principles.md`, `agents.md`, `hooks/`, `skills/`). The single files are symlinked into `~/.claude`; `hooks/`, `skills/`, and `commands/` are real dirs there, populated by per-file symlinks so public (this repo), private (a vault's `_claude/`), and machine-local entries can coexist in one dir.
+1. Public global config: this repo's `claude/` (`CLAUDE.md` index, `AGENTS.md`, `delegation.md`, `hooks/`, `skills/`). The single files are symlinked into `~/.claude`; `hooks/`, `skills/`, and `commands/` are real dirs there, populated by per-file symlinks so public (this repo), private (a vault's `_claude/`), and machine-local entries can coexist in one dir.
 2. Private global config: the vault's `_claude/` (section files, `settings.json`, `commands/`), symlinked into `~/.claude`. The public `CLAUDE.md` imports every section by absolute path (`@~/.claude/...`); a missing private file simply no-ops.
 3. The vault itself: notes plus `memory/` (auto-memory travels with the vault via git).
 
@@ -26,7 +26,7 @@ One context is wired per machine; every machine shares the public layer.
 ## B. Converge an existing context
 
 0. Run `claude/bin/audit.sh ~/obsidian/<ctx>` for the mechanical findings list (links, settings gaps, hardcoded paths, memory naming). The steps below cover those findings plus the judgment calls the script can't see.
-1. Pull this repo, rerun `claude/bin/bootstrap.sh ~/obsidian/<ctx>`. This adds links older setups miss (`agents.md`, `hooks/`, `skills/`).
+1. Pull this repo, rerun `claude/bin/bootstrap.sh ~/obsidian/<ctx>`. This adds links older setups miss (`AGENTS.md`, `delegation.md`, `hooks/`, `skills/`) and drops broken ones left by renamed or removed files.
 2. `settings.json`, against `templates/settings-snippets.md`:
    - drop allow rules for built-in read-only commands (`ls`, `cat`, `grep`, `find`, `head`, `tail`, `wc`, `stat`, `du`, `sort`, `uniq`, `which`, read-only `git` forms); keep non-builtin tools and the vault `git -C` prefix rules
    - replace every literal `/Users/<name>` with the `~` form (file rules resolve `~`; Bash rules match literal command text, and commands are written with `~`)

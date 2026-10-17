@@ -10,7 +10,7 @@ description: >-
 
 # docstyle
 
-Make a document read like a careful engineer wrote it, not a model. House rules below are the source of truth (they mirror `style.md`, which governs all my output); the vocabulary and structural checks are the long tail.
+Make a document read like a careful engineer wrote it, not a model. House rules below are the source of truth (they mirror the style rules in `AGENTS.md`, which govern all my output); the vocabulary and structural checks are the long tail.
 
 These are signals, not proof. A single flagged word is not a crime. Do not over-correct: applying every rule at maximum strictness produces its own robotic uniformity, which is the thing you are trying to avoid. Fix what reads as machine-generated; leave what already sounds human.
 

@@ -8,25 +8,31 @@ set -uo pipefail
 VAULT="${1:?usage: audit.sh <vault-path>}"
 VAULT="$(cd "$VAULT" && pwd)"
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SRC="$DOTFILES/claude"
 C="$HOME/.claude"
 N=0
 finding() { printf ' - %s\n' "$1"; N=$((N + 1)); }
 shopt -s nullglob
 
 # public-layer links
-for f in CLAUDE.md style.md principles.md agents.md; do
-  [[ -f "$DOTFILES/claude/$f" && "$(readlink "$C/$f" 2>/dev/null)" != "$DOTFILES/claude/$f" ]] \
+for f in CLAUDE.md AGENTS.md delegation.md; do
+  [[ -f "$SRC/$f" && "$(readlink "$C/$f" 2>/dev/null)" != "$SRC/$f" ]] \
     && finding "link missing or wrong: ~/.claude/$f (run bin/bootstrap.sh)"
 done
 # hooks/skills/commands are real dirs populated per-file (public/private/local
 # mix); check each public entry is linked inside, not that the dir is a link.
 for d in hooks skills commands; do
-  [[ -d "$DOTFILES/claude/$d" ]] || continue
-  for e in "$DOTFILES/claude/$d"/*; do
+  [[ -d "$SRC/$d" ]] || continue
+  for e in "$SRC/$d"/*; do
     [[ -e "$e" ]] || continue
     [[ "$(readlink "$C/$d/$(basename "$e")" 2>/dev/null)" != "$e" ]] \
       && finding "link missing or wrong: ~/.claude/$d/$(basename "$e") (run bin/bootstrap.sh)"
   done
+done
+# broken links into this repo, left behind by a rename or removal here
+for l in "$C"/*.md "$C"/{hooks,skills,commands}/*; do
+  [[ -L "$l" && ! -e "$l" && "$(readlink "$l")" == "$DOTFILES"/* ]] \
+    && finding "broken link into dotfiles: ${l/#$HOME/\~} (run bin/bootstrap.sh)"
 done
 
 # private-layer links, plus strays into other vaults

@@ -1,12 +1,15 @@
 # Global instructions
 
-Index file. Each section is its own file so public and private parts can be shared or kept back independently. Public files (style, principles) live in this repo; the rest are private, symlinked in from a separate location, and no-op on machines where they're absent.
+Index file. `AGENTS.md` holds the shared rules as plain text so any tool can use it; the rest of this file is Claude-only. Public files live in this repo; the private sections are symlinked in from a separate location and no-op on machines where they're absent.
 
-## Public
+@~/.claude/AGENTS.md
 
-@~/.claude/style.md
-@~/.claude/principles.md
-@~/.claude/agents.md
+## Claude Code
+
+- The `docstyle-lint` hook enforces the greppable subset of the writing rules (em-dashes, banned phrases, AI-tool fingerprints) on every `.md` write. Treat it as a backstop, not the whole standard.
+- When permission prompts keep interrupting a session, suggest running `/fewer-permission-prompts` (it mines transcripts and proposes allowlist additions). Occasionally, not every session.
+
+@~/.claude/delegation.md
 
 ## Private (symlinked, not in this repo)
 

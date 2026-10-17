@@ -7,8 +7,10 @@ set -euo pipefail
 VAULT="${1:?usage: bootstrap.sh <vault-path>}"
 VAULT="$(cd "$VAULT" && pwd)"
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SRC="$DOTFILES/claude"
 CLAUDE_DIR="$HOME/.claude"
 mkdir -p "$CLAUDE_DIR"
+shopt -s nullglob
 
 link() {  # link <target> <linkname>; never clobber a real file
   local target="$1" name="$2"
@@ -19,25 +21,35 @@ link() {  # link <target> <linkname>; never clobber a real file
   echo "linked: ${name/#$HOME/\~} -> ${target/#$HOME/\~}"
 }
 
+# Drop broken links into this repo, left behind when a file here is renamed,
+# removed or moved. On case-insensitive APFS an old agents.md link still
+# resolves to AGENTS.md, so it isn't broken; linking AGENTS.md below replaces it.
+for l in "$CLAUDE_DIR"/*.md "$CLAUDE_DIR"/{hooks,skills,commands}/*; do
+  [[ -L "$l" && ! -e "$l" ]] || continue
+  t="$(readlink "$l")"
+  if [[ "$t" == "$DOTFILES"/* ]]; then
+    rm "$l"; echo "unlinked (gone from repo): ${l/#$HOME/\~} -> ${t/#$HOME/\~}"
+  fi
+done
+
 # Public single files from this repo
-for f in CLAUDE.md style.md principles.md agents.md; do
-  [[ -f "$DOTFILES/claude/$f" ]] && link "$DOTFILES/claude/$f" "$CLAUDE_DIR/$f"
+for f in CLAUDE.md AGENTS.md delegation.md; do
+  [[ -f "$SRC/$f" ]] && link "$SRC/$f" "$CLAUDE_DIR/$f"
 done
 # Public hooks/skills/commands: link each entry into a real dir, not as a
 # whole-dir symlink, so public, private (vault) and machine-local entries
 # can coexist here.
 for d in hooks skills commands; do
-  [[ -d "$DOTFILES/claude/$d" ]] || continue
+  [[ -d "$SRC/$d" ]] || continue
   [[ -L "$CLAUDE_DIR/$d" ]] && rm "$CLAUDE_DIR/$d"   # replace an old whole-dir symlink
   mkdir -p "$CLAUDE_DIR/$d"
-  for e in "$DOTFILES/claude/$d"/*; do
+  for e in "$SRC/$d"/*; do
     [[ -e "$e" ]] && link "$e" "$CLAUDE_DIR/$d/$(basename "$e")"
   done
 done
 
 # Rewire guard: drop private-layer links that point into a different vault,
 # so switching a machine's context can't leave stale section files behind
-shopt -s nullglob
 for l in "$CLAUDE_DIR"/*.md "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/commands" "$CLAUDE_DIR"/commands/*; do
   [[ -L "$l" ]] || continue
   t="$(readlink "$l")"

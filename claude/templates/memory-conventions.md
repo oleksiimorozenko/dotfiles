@@ -22,7 +22,7 @@ metadata:
 
 One line per memory: `- [Title](file.md) - hook`. Start the file with a preamble so core facts don't drift into memory:
 
-> Auto-memory index, one line per note. Core facts are NOT kept here: who I am lives in `_claude/context.md`, working principles in the public `principles.md`, ops shorthand in the other `_claude/*.md`. Memory is for genuinely new, evolving facts learned over time.
+> Auto-memory index, one line per note. Core facts are NOT kept here: who I am lives in `_claude/context.md`, working principles in the public `AGENTS.md`, ops shorthand in the other `_claude/*.md`. Memory is for genuinely new, evolving facts learned over time.
 
 ## Hygiene
 
