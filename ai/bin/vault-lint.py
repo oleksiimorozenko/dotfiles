@@ -22,7 +22,10 @@ for root, dirs, fs in os.walk(V):
         names.add(os.path.splitext(f)[0].lower())
         names.add(f.lower())  # embeds with extension: [[x.base]], [[img.png]]
         if f.endswith('.md'):
-            docs[p] = open(p, encoding='utf-8', errors='ignore').read()
+            try:
+                docs[p] = open(p, encoding='utf-8', errors='ignore').read()
+            except OSError as e:  # sandboxed agents are denied some private notes
+                print(f'skipped {os.path.relpath(p, V)}: {e.strerror}', file=sys.stderr)
 
 def rel(p): return os.path.relpath(p, V)
 issues = collections.defaultdict(list)
