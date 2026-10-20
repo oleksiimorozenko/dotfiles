@@ -34,7 +34,10 @@ today = datetime.date.today()
 
 for p, txt in docs.items():
     r = rel(p)
-    links = re.findall(r'\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]', txt)
+    # Obsidian doesn't resolve links inside code, and bash tests look like [[ -f x ]].
+    scan = re.sub(r'```.*?```', '', txt, flags=re.S)
+    scan = re.sub(r'`.*?`', '', scan)
+    links = re.findall(r'\[\[(?![ \t])([^\]|#]+)(?:[#|][^\]]*)?\]\]', scan)
     seen = set()
     for m in links:
         t = m.strip().rstrip('\\').strip(); base = t.split('/')[-1].lower()
