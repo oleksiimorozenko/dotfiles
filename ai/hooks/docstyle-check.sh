@@ -48,23 +48,26 @@ for pat in \
   "as an? (AI|artificial intelligence|large language)" ; do
   seen "$pat" && hard+="  - AI-tool fingerprint: /$pat/\n"
 done
+# stop-slop tells. Hard, not advisory: Claude never sees stderr from a hook that
+# exits 0, and these matter most on Jira and Slack posts, which run hard-only.
+# The rare literal use ("both toggles are on the same page") goes in backticks.
+for pat in \
+  "[Hh]ere'?s (the thing|why)" \
+  "[Tt]he truth is" \
+  "[Ll]et that sink in" \
+  "[Ff]ull stop\\." \
+  "[Mm]ake no mistake" \
+  "[Cc]ircl(e|es|ed|ing) back" \
+  "[Dd]oubl(e|es|ed|ing) down" \
+  "(^|[^A-Za-z])[Ll]ean(s|ed|ing)? into" \
+  "on the same page" ; do
+  seen "$pat" && hard+="  - throat-clearing, emphasis crutch or jargon: /$pat/ (cut it, state the point)\n"
+done
 
 # --- soft: judgment calls (advisory, exit 0 unless a hard finding also fired) ---
+# Claude only sees these next to a hard finding, or when a person runs this by hand.
 if [ "$mode" != "hard-only" ]; then
   seen '\*\*[A-Za-z][A-Za-z0-9-]*\*\*' && soft+="  - single-word **bold**: bold only when it earns emphasis\n"
-  # stop-slop tells; advisory only, since a few can be literal
-  for pat in \
-    "[Hh]ere'?s (the thing|why)" \
-    "[Tt]he truth is" \
-    "[Ll]et that sink in" \
-    "[Ff]ull stop\\." \
-    "[Mm]ake no mistake" \
-    "[Cc]ircl(e|es|ed|ing) back" \
-    "[Dd]oubl(e|es|ed|ing) down" \
-    "(^|[^A-Za-z])[Ll]ean(s|ed|ing)? into" \
-    "on the same page" ; do
-    seen "$pat" && soft+="  - throat-clearing, emphasis crutch or jargon: /$pat/ (cut it, state the point)\n"
-  done
 fi
 
 if [ -n "$hard" ]; then

@@ -154,7 +154,7 @@ These mean text was pasted from a chat UI. Near-zero false positives.
 - **P1**: Tier 1 vocabulary, copula avoidance, negation frames, hedging, throat-clearing, emphasis crutches.
 - **P2**: Tier 2/3 vocabulary, uniformity, polish. Fix by judgment and register.
 
-The deterministic lint hook (`hooks/docstyle-lint.sh`) covers the greppable P0 subset plus em-dashes and single-word bold on the text of every `.md` write, before it lands. It also prints advisories, without blocking, for a few throat-clearing phrases, emphasis crutches and jargon. Run by hand on whole files it is the first step of detect mode. This skill is the deeper, on-demand pass.
+The deterministic lint hook (`hooks/docstyle-lint.sh`) covers the greppable P0 subset plus em-dashes and single-word bold on the text of every `.md` write, before it lands. It also blocks a few throat-clearing phrases, emphasis crutches and jargon, in `.md` writes and in Jira, Slack and Confluence posts alike. Run by hand on whole files it is the first step of detect mode. This skill is the deeper, on-demand pass.
 
 ## Self-reference escape hatch
 
