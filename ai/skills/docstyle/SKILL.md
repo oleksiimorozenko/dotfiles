@@ -18,9 +18,9 @@ Attribution: the pattern library and tiered vocabulary are adapted from [`avoid-
 
 ## Modes
 
-- **detect** — flag issues, no rewrite. Group by severity (P0/P1/P2), mark each as a clear problem or a judgment call. Use when auditing text you do not want altered. Start with the deterministic pass: `~/.claude/hooks/docstyle-lint.sh <file>`. For remote text (a Jira comment, a Confluence page), fetch it as Markdown where the tool offers it (the checker skips Markdown code, not HTML `<code>`), save it to a scratch `.txt` (a `.md` would be blocked by the write hook), and pass that path.
-- **rewrite** (default) — fix the issues, output the clean version, then a short "what changed", then run one corrective second pass to catch tells the first pass introduced. Stop after two passes.
-- **edit** — minimal, targeted in-place edits to the flagged spans only. Preserve passages that are already human, plus quotes and code. Re-read after to verify.
+- **detect**: flag issues, no rewrite. Group by severity (P0/P1/P2), mark each as a clear problem or a judgment call. Use when auditing text you do not want altered. Start with the deterministic pass: `~/.claude/hooks/docstyle-lint.sh <file>`. For remote text (a Jira comment, a Confluence page), fetch it as Markdown where the tool offers it (the checker skips Markdown code, not HTML `<code>`), save it to a scratch `.txt` (a `.md` would be blocked by the write hook), and pass that path.
+- **rewrite** (default): fix the issues, output the clean version, then a short "what changed", then run one corrective second pass to catch tells the first pass introduced. Stop after two passes.
+- **edit**: minimal, targeted in-place edits to the flagged spans only. Preserve passages that are already human, plus quotes and code. Re-read after to verify.
 
 ## House rules (source of truth, override everything below)
 
@@ -37,11 +37,11 @@ Attribution: the pattern library and tiered vocabulary are adapted from [`avoid-
 
 Write each type in its native register. The register decides which checks below relax.
 
-- **Incident / postmortem** — formal, narrative where it aids understanding (timeline, impact, root cause, what we would do differently). Honest about what went wrong.
-- **Runbook / SOP** — terse, numbered, imperative steps. Commands in code blocks. Assume a competent operator under pressure. Relax the bullet, hedging, and uniform-length checks; a runbook is supposed to be a list.
-- **Jira / Slack / status update** — short and scoped. Lint only the worst offenders (P0). Lead with what changed and the link; no redundant timestamps (the platform stamps it); outcome over mechanism (don't explain how it was made unless it changes what the reader does).
-- **Confluence / shared doc** — structured and scannable. TL;DR up top, headers, bullets, tables for reference data.
-- **ADR / design doc** — context, decision, consequences. State the trade-offs.
+- **Incident / postmortem**: formal, narrative where it aids understanding (timeline, impact, root cause, what we would do differently). Honest about what went wrong.
+- **Runbook / SOP**: terse, numbered, imperative steps. Commands in code blocks. Assume a competent operator under pressure. Relax the bullet, hedging, and uniform-length checks; a runbook is supposed to be a list.
+- **Jira / Slack / status update**: short and scoped. Lint only the worst offenders (P0). Lead with what changed and the link; no redundant timestamps (the platform stamps it); outcome over mechanism (don't explain how it was made unless it changes what the reader does).
+- **Confluence / shared doc**: structured and scannable. TL;DR up top, headers, bullets, tables for reference data.
+- **ADR / design doc**: context, decision, consequences. State the trade-offs.
 
 Technical carve-out: in runbooks, ADRs, and infra docs, words like `robust`, `comprehensive`, `ecosystem`, `leverage` (financial), and `streamline` can be literal and correct. Do not flag them there unless they are clearly filler.
 
@@ -49,7 +49,7 @@ Technical carve-out: in runbooks, ADRs, and infra docs, words like `robust`, `co
 
 Match inflected forms (`-ly`, `-ing`, plurals, conjugations).
 
-**Tier 1 — always replace.** These are 5-20x more common in AI text.
+**Tier 1: always replace.** These are 5-20x more common in AI text.
 
 | Word | Replace with |
 |---|---|
@@ -105,25 +105,25 @@ Match inflected forms (`-ly`, `-ing`, plurals, conjugations).
 | take a step back | (cut, or say what you reconsidered) |
 | on the same page (idiom) | agree, aligned |
 
-**Tier 2 — flag when 2 or more appear in one paragraph.**
+**Tier 2: flag when 2 or more appear in one paragraph.**
 
 `harness, navigate, foster, elevate, unleash, streamline, empower, bolster, spearhead, resonate, revolutionize, facilitate, underpin, nuanced, crucial, multifaceted, ecosystem, myriad, plethora, encompass, catalyze, reimagine, galvanize, augment, cultivate, illuminate, elucidate, juxtapose, transformative, cornerstone, paramount, poised (to), burgeoning, nascent, quintessential, overarching, underpinning`
 
-**Tier 3 — flag only at density (~3% of words, or many clustered).**
+**Tier 3: flag only at density (~3% of words, or many clustered).**
 
 `significant, innovative, effective, dynamic, scalable, compelling, unprecedented, exceptional, remarkable, sophisticated, instrumental, world-class, state-of-the-art, best-in-class`
 
 ## Structural and rhetorical checks
 
-- **Copula avoidance** — "serves as / features / boasts / presents / represents" where "is / has" is meant.
-- **Negation frames** — "It's not X, it's Y", "This isn't about X, it's about Y". Max one per piece.
-- **Compulsive triads** — the reflexive "adjective, adjective, and adjective". Vary it: use two items, four, or a full sentence.
-- **Hedging** — "perhaps", "could potentially", "it's important to note that". State it plainly or cut it.
-- **Vague attribution** — "experts believe", "studies show" with no source. Name the source or drop the claim.
-- **Significance / novelty inflation** — "a significant milestone", "a groundbreaking approach". Say what happened.
-- **False concession** — "While X is impressive, Y remains a challenge".
-- **Sentence and paragraph uniformity** — vary length and rhythm. Read it aloud.
-- **Low information density** — paragraphs you could reshuffle without changing the meaning. Cut them.
+- **Copula avoidance**: "serves as / features / boasts / presents / represents" where "is / has" is meant.
+- **Negation frames**: "It's not X, it's Y", "This isn't about X, it's about Y". Max one per piece.
+- **Compulsive triads**: the reflexive "adjective, adjective, and adjective". Vary it: use two items, four, or a full sentence.
+- **Hedging**: "perhaps", "could potentially", "it's important to note that". State it plainly or cut it.
+- **Vague attribution**: "experts believe", "studies show" with no source. Name the source or drop the claim.
+- **Significance / novelty inflation**: "a significant milestone", "a groundbreaking approach". Say what happened.
+- **False concession**: "While X is impressive, Y remains a challenge".
+- **Sentence and paragraph uniformity**: vary length and rhythm. Read it aloud.
+- **Low information density**: paragraphs you could reshuffle without changing the meaning. Cut them.
 - **Throat-clearing**: "Here's the thing:", "Here's why X", "It turns out", "The truth is", anywhere in the text, not only at the start. Cut it and state the point.
 - **Emphasis crutches**: "Let that sink in.", "Full stop.", "Make no mistake", "This matters because". If it matters, the content shows why.
 - **Signposting**: "As we'll see", "In this section, we'll", "X is a feature, not a bug". Headings already do this job; cut it.
@@ -150,9 +150,9 @@ These mean text was pasted from a chat UI. Near-zero false positives.
 
 ## Severity
 
-- **P0** — fingerprints above, and any banned phrase. Always fix.
-- **P1** — Tier 1 vocabulary, copula avoidance, negation frames, hedging, throat-clearing, emphasis crutches.
-- **P2** — Tier 2/3 vocabulary, uniformity, polish. Fix by judgment and register.
+- **P0**: fingerprints above, and any banned phrase. Always fix.
+- **P1**: Tier 1 vocabulary, copula avoidance, negation frames, hedging, throat-clearing, emphasis crutches.
+- **P2**: Tier 2/3 vocabulary, uniformity, polish. Fix by judgment and register.
 
 The deterministic lint hook (`hooks/docstyle-lint.sh`) covers the greppable P0 subset plus em-dashes and single-word bold on the text of every `.md` write, before it lands. It also prints advisories, without blocking, for a few throat-clearing phrases, emphasis crutches and jargon. Run by hand on whole files it is the first step of detect mode. This skill is the deeper, on-demand pass.
 
@@ -162,6 +162,6 @@ Do not flag text inside code blocks, inline-code backticks, or blockquotes, and 
 
 ## Output format
 
-- **detect** — issues grouped P0/P1/P2, each marked clear-problem or judgment-call. No rewrite.
-- **rewrite** — the issues found, then the rewritten text, then a short "what changed", then the second-pass result.
-- **edit** — a before/after list of the spans changed, then a one-line verification that nothing else moved.
+- **detect**: issues grouped P0/P1/P2, each marked clear-problem or judgment-call. No rewrite.
+- **rewrite**: the issues found, then the rewritten text, then a short "what changed", then the second-pass result.
+- **edit**: a before/after list of the spans changed, then a one-line verification that nothing else moved.
