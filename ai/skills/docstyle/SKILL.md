@@ -14,7 +14,7 @@ Make a document read like a careful engineer wrote it, not a model. House rules 
 
 These are signals, not proof. A single flagged word is not a crime. Do not over-correct: applying every rule at maximum strictness produces its own robotic uniformity, which is the thing you are trying to avoid. Fix what reads as machine-generated; leave what already sounds human.
 
-Attribution: the pattern library and tiered vocabulary are adapted from [`avoid-ai-writing`](https://github.com/conorbronsdon/avoid-ai-writing) by Conor Bronsdon (MIT), trimmed and merged with my house style.
+Attribution: the pattern library and tiered vocabulary are adapted from [`avoid-ai-writing`](https://github.com/conorbronsdon/avoid-ai-writing) by Conor Bronsdon (MIT), trimmed and merged with my house style. Some structural checks (throat-clearing, emphasis crutches, rhetorical setups, quotable closers) come from [`stop-slop`](https://github.com/hardikpandya/stop-slop) by Hardik Pandya (MIT).
 
 ## Modes
 
@@ -98,6 +98,12 @@ Match inflected forms (`-ly`, `-ing`, plurals, conjugations).
 | ascertain | find out, determine |
 | endeavor | effort, attempt, try |
 | embrace (metaphor) | adopt, accept, use |
+| lean into | commit to, focus on |
+| double down (on) | commit further to, invest more in |
+| circle back | come back to, follow up |
+| moving forward | from now on, next (or cut) |
+| take a step back | (cut, or say what you reconsidered) |
+| on the same page (idiom) | agree, aligned |
 
 **Tier 2 — flag when 2 or more appear in one paragraph.**
 
@@ -118,6 +124,13 @@ Match inflected forms (`-ly`, `-ing`, plurals, conjugations).
 - **False concession** — "While X is impressive, Y remains a challenge".
 - **Sentence and paragraph uniformity** — vary length and rhythm. Read it aloud.
 - **Low information density** — paragraphs you could reshuffle without changing the meaning. Cut them.
+- **Throat-clearing**: "Here's the thing:", "Here's why X", "It turns out", "The truth is", anywhere in the text, not only at the start. Cut it and state the point.
+- **Emphasis crutches**: "Let that sink in.", "Full stop.", "Make no mistake", "This matters because". If it matters, the content shows why.
+- **Signposting**: "As we'll see", "In this section, we'll", "X is a feature, not a bug". Headings already do this job; cut it.
+- **Rhetorical setups**: "What if...?", "Think about it:", "And that's okay.", or a question the next sentence answers. State the answer.
+- **Dramatic fragmentation**: staccato fragments for emphasis, like `<Noun>. That's it. That's the <thing>.` or "X. And Y. And Z." Join them into one sentence.
+- **Quotable closers**: a paragraph that ends on a punchy one-liner written to be quoted. End on the last piece of information instead.
+- **Vague declaratives**: "The implications are significant", "The stakes are high". Name the implication or the stake, or cut it.
 
 ## Formatting tells
 
@@ -138,10 +151,10 @@ These mean text was pasted from a chat UI. Near-zero false positives.
 ## Severity
 
 - **P0** — fingerprints above, and any banned phrase. Always fix.
-- **P1** — Tier 1 vocabulary, copula avoidance, negation frames, hedging.
+- **P1** — Tier 1 vocabulary, copula avoidance, negation frames, hedging, throat-clearing, emphasis crutches.
 - **P2** — Tier 2/3 vocabulary, uniformity, polish. Fix by judgment and register.
 
-The deterministic lint hook (`hooks/docstyle-lint.sh`) covers the greppable P0 subset plus em-dashes and single-word bold on the text of every `.md` write, before it lands. Run by hand on whole files it is the first step of detect mode. This skill is the deeper, on-demand pass.
+The deterministic lint hook (`hooks/docstyle-lint.sh`) covers the greppable P0 subset plus em-dashes and single-word bold on the text of every `.md` write, before it lands. It also prints advisories, without blocking, for a few throat-clearing phrases, emphasis crutches and jargon. Run by hand on whole files it is the first step of detect mode. This skill is the deeper, on-demand pass.
 
 ## Self-reference escape hatch
 
