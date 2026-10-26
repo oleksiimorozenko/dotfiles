@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """Vault health check. Usage: vault-lint.py <vault-path> [--knowledge-dirs a,b,c] [--stale-days N]
+       [--todo-dirs a,b] [--idea-dirs a,b] [--todo-stale-days N]
 Reports: broken wikilinks, orphan knowledge notes, missing frontmatter,
-stale `synced:` mirrors, oversized hot.md. Read-only; exit 1 if issues found."""
-import os, re, sys, argparse, datetime, collections
+stale `synced:` mirrors, oversized hot.md, open todos untouched for N days,
+todo/idea notes whose status doesn't match their folder. Read-only; exit 1 if issues found."""
+import os, re, sys, argparse, datetime, collections, subprocess
 
 ap = argparse.ArgumentParser()
 ap.add_argument('vault')
 ap.add_argument('--knowledge-dirs', default='notes')
 ap.add_argument('--stale-days', type=int, default=14)
+ap.add_argument('--todo-dirs', default='todos')
+ap.add_argument('--idea-dirs', default='ideas')
+ap.add_argument('--todo-stale-days', type=int, default=28)
 a = ap.parse_args()
 V = os.path.abspath(a.vault)
-kdirs = [d.strip().rstrip('/') for d in a.knowledge_dirs.split(',') if d.strip()]
+def dirlist(s): return [d.strip().rstrip('/') for d in s.split(',') if d.strip()]
+kdirs, tdirs, idirs = dirlist(a.knowledge_dirs), dirlist(a.todo_dirs), dirlist(a.idea_dirs)
+OPEN, IDEA = ('todo', 'in-progress'), ('idea', 'graduated')
 SKIP = ('.git', '.obsidian')
 PLACEHOLDER = re.compile(r'[<>]|xxxx', re.I)
 
@@ -63,7 +70,54 @@ for p, txt in docs.items():
     if inbound[base] == 0 and not has_out:
         issues['orphan knowledge notes'].append(r)
 
-hot = os.path.join(V, 'hot.md')
+def under(r, ds): return next((d for d in ds if r.startswith(d + '/') or r.startswith(d + os.sep)), None)
+
+# Last commit per file, not mtime: a fresh clone gives every file today's mtime.
+touched = {}
+try:
+    if not tdirs: raise OSError
+    git =['git', '-C', V, '-c', 'core.quotePath=false']
+    out = subprocess.run(git + ['log', '--format=%x00%cs', '--name-only', '--', *tdirs],
+                         capture_output=True, text=True, check=True).stdout
+    day = None
+    for line in out.splitlines():
+        if line.startswith('\0'): day = line[1:]
+        elif line: touched.setdefault(line, day)
+    out = subprocess.run(git + ['status', '--porcelain', '--', *tdirs],
+                         capture_output=True, text=True, check=True).stdout
+    for line in out.splitlines(): touched[line[3:].split(' -> ')[-1]] = today.isoformat()
+except (OSError, subprocess.CalledProcessError):
+    touched = None  # not a git repo
+
+for p, txt in docs.items():
+    r = rel(p); base = os.path.basename(p)[:-3].lower()
+    td, idd = under(r, tdirs), under(r, idirs)
+    if not (td or idd): continue
+    # Folder indexes (todos/TODO.md, ideas/ideas.md) carry a status but aren't items.
+    if base in ('readme', 'index', 'todo') or base == os.path.basename(os.path.dirname(p)).lower(): continue
+    fm = re.match(r'^---\n(.*?)\n---', txt, re.S)
+    m = fm and re.search(r'^status:\s*["\']?([\w-]+)', fm.group(1), re.M)
+    st = m.group(1).lower() if m else None
+    if td and st in OPEN:
+        day = touched.get(r) if touched is not None else \
+            datetime.date.fromtimestamp(os.path.getmtime(p)).isoformat()
+        age = (today - datetime.date.fromisoformat(day)).days if day else 0
+        if age > a.todo_stale_days:
+            issues[f'stale todos (>{a.todo_stale_days}d untouched)'].append(f'{r} ({st}, {age}d)')
+    elif idd and st in IDEA:
+        pass
+    elif not st:
+        issues['status vs folder'].append(f'{r}: no status')
+    elif td and st == 'done':
+        issues['status vs folder'].append(f'{r}: done, archive it')
+    elif td and st in IDEA:
+        issues['status vs folder'].append(f'{r}: {st}, move to {(idirs or ["ideas"])[0]}/')
+    elif idd and st in OPEN:
+        issues['status vs folder'].append(f'{r}: {st}, move to {(tdirs or ["todos"])[0]}/')
+    else:
+        issues['status vs folder'].append(f'{r}: unknown status {st}')
+
+hot =os.path.join(V, 'hot.md')
 if os.path.exists(hot):
     words = len(open(hot, encoding='utf-8', errors='ignore').read().split())
     if words > 600: issues['hot.md oversized'].append(f'{words} words (target ~500)')
