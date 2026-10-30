@@ -48,6 +48,7 @@ The full registers, the tiered AI-vocabulary list, and the detect/rewrite/edit p
 For Jira/Slack comments, PR and commit messages, and status updates:
 
 - Be concise. Lead with what changed and the link to it, then cut anything the reader can get elsewhere.
+- In Jira, don't restate what the ticket already shows: a PR the GitHub integration links, or the status of an epic's child issues. Lead with the substance (root cause, what changed).
 - Self-contained. Readers have none of my notes, my vault, or the conversation behind the text. State the reason in plain words, and cite only what they can open: a Jira key, a PR, a commit, a URL, or a path in the same repo. No private finding IDs (`finding 2c`), vault note names, "as discussed", or how I got there (which analysis found it, which document records it).
 - Link every reference wherever links render (Jira, Confluence, Slack, PR bodies; commit messages are plain text). Hyperlink it rather than naming it bare or pasting a raw URL, with this link text:
   - PR: `PR#<id>`, plus the repo when several are in play (`gitops PR#123`).
