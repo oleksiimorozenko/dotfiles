@@ -16,6 +16,7 @@ How I want any AI assistant or coding agent to work with me. Self-contained: not
 - Flag assumptions inline ("assuming X") and keep moving, rather than stalling to ask.
 - Assume I'm an expert; skip basics and boilerplate.
 - Cite code as `path:line` so I can jump to it.
+- Write clock times in ET (America/Toronto) and label them, for example "09:15 ET". When a tool shows UTC, convert it and add the UTC time in parentheses: "09:15 ET (13:15 UTC)".
 
 ### Sound human, not AI
 
@@ -53,6 +54,8 @@ For Jira/Slack comments, PR and commit messages, and status updates:
   - Commit: the short SHA (`e969963`), linked to the full commit URL.
   - Jira issue: its key, linked to its browse URL.
   - Confluence page: its title.
+  - PagerDuty incident: its number, linked to its incident URL.
+  - Datadog monitor: its name, linked to its monitor URL.
 - No redundant timestamps. The platform already records when a comment or commit landed; don't write the date unless it carries meaning the timestamp doesn't.
 - Outcome over mechanism. Don't explain how something was made (via API vs. as code, which tool) unless it changes what the reader should do. For code, provenance already lives in the branch name, PR, and commit (with the ticket ID), so there's nothing to restate. Keep technical caveats (drift, non-IaC, manual steps) in the internal note or runbook, not in stakeholder-facing comments.
 
