@@ -21,14 +21,15 @@ link() {  # link <target> <linkname>; never clobber a real file
   echo "linked: ${name/#$HOME/\~} -> ${target/#$HOME/\~}"
 }
 
-# Drop broken links into this repo, left behind when a file here is renamed,
-# removed or moved. On case-insensitive APFS an old agents.md link still
-# resolves to AGENTS.md, so it isn't broken; linking AGENTS.md below replaces it.
+# Drop broken links into this repo or the vault, left behind when a file there
+# is renamed, removed or moved. On case-insensitive APFS an old agents.md link
+# still resolves to AGENTS.md, so it isn't broken; linking AGENTS.md below
+# replaces it.
 for l in "$CLAUDE_DIR"/*.md "$CLAUDE_DIR"/{hooks,skills,commands}/*; do
   [[ -L "$l" && ! -e "$l" ]] || continue
   t="$(readlink "$l")"
-  if [[ "$t" == "$DOTFILES"/* ]]; then
-    rm "$l"; echo "unlinked (gone from repo): ${l/#$HOME/\~} -> ${t/#$HOME/\~}"
+  if [[ "$t" == "$DOTFILES"/* || "$t" == "$VAULT"/* ]]; then
+    rm "$l"; echo "unlinked (gone from source): ${l/#$HOME/\~} -> ${t/#$HOME/\~}"
   fi
 done
 

@@ -18,7 +18,7 @@ Reconcile `~/obsidian/<ctx>/jira/` mirrors against Jira. **Jira is the source of
 
 ## Backend
 
-Resolve Atlassian access from `~/.claude/mcp.md`; project key, field ids, and JQL quirks from `jira/CLAUDE.md` / `jira/README.md`. If no Atlassian tooling is available in this session, stop and say so — never fake a sync from local files.
+Resolve Atlassian access from `~/.claude/tools.md`; project key, field ids, and JQL quirks from `jira/CLAUDE.md` / `jira/README.md`. If no Atlassian tooling is available in this session, stop and say so — never fake a sync from local files.
 
 ## Steps
 

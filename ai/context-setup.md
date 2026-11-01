@@ -16,7 +16,7 @@ One context is wired per machine; every machine shares the public layer.
 2. Run `ai/bin/bootstrap.sh ~/obsidian/<ctx>`. It derives the repo location from itself, links the public files, links each `hooks/`/`skills/` entry into a real dir, then the vault's `_claude/` files and `commands/`. It never clobbers a real file.
 3. If the vault is new, create its `_claude/` from `ai/templates/`:
    - `settings.json`: assemble from the blocks in `templates/settings-snippets.md`, then add personal keys (model, theme, notifications).
-   - `context.md` (who I am in this context) and `git.md` (branch and commit conventions, plus the vault sync carve-out). Add `operations.md`, `shell.md`, `projects.md`, `mcp.md`, `secrets.md` as they become useful.
+   - `context.md` (who I am in this context) and `git.md` (branch and commit conventions, plus the vault sync carve-out). Add `operations.md`, `shell.md`, `projects.md`, `tools.md`, `secrets.md` as they become useful.
    - `commands/`: copy `templates/sync-vault.md` and `templates/daily.md`, fill the placeholders. Copy `templates/daily-note-template.md` to `<vault>/daily/_template.md`.
    - `memory/MEMORY.md` per `templates/memory-conventions.md`.
    - `jira/` from `templates/jira-vault/` if the context tracks tickets (works tracker-less too).

@@ -256,7 +256,7 @@ Log out and back in (or reconnect) for it to take effect.
 
 Link `~/.claude` from this repo (public tier: `CLAUDE.md`, `style`, `principles`,
 `agents`) plus a context vault's `_claude/` (private tier: `context`, `git`,
-`mcp`, `settings.json`, and so on):
+`tools`, `settings.json`, and so on):
 
 ```bash
 make claude VAULT=~/obsidian/<context>

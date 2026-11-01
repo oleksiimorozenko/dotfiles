@@ -19,5 +19,5 @@ Index file. `AGENTS.md` holds the shared rules as plain text so any tool can use
 @~/.claude/shell.md
 @~/.claude/git.md
 @~/.claude/projects.md
-@~/.claude/mcp.md
+@~/.claude/tools.md
 @~/.claude/secrets.md
