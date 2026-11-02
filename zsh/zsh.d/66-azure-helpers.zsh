@@ -43,6 +43,7 @@ _az_parse_debug() {
     _az_verbose=0
     _az_force=0
     _az_open=0
+    _az_help=0
     [[ "$AZURE_DEBUG" == "1" ]]   && _az_debug=1 && _az_verbose=1
     [[ "$AZURE_VERBOSE" == "1" ]] && _az_verbose=1
     local args=()
@@ -52,6 +53,7 @@ _az_parse_debug() {
             -v|--verbose) _az_verbose=1 ;;
             -f|--force)   _az_force=1 ;;
             -o|--open)    _az_open=1 ;;
+            -h|--help)    _az_help=1 ;;
             *) args+=("$arg") ;;
         esac
     done
@@ -59,10 +61,41 @@ _az_parse_debug() {
 }
 
 # Azure PIM — activate PIM RBAC roles for the day
-# Usage: azpim [-d|-v|-f] [init | aks-token [context] | [role-filter...]]
+# Usage: azpim [-h|-d|-v|-f] [init | aks-token [context] | [role-filter...]]
+_azpim_usage() {
+    cat <<'EOF'
+Usage: azpim [options] [role-filter...]
+       azpim [options] init
+       azpim [options] aks-token [context]
+
+Activates the PIM roles in ~/.config/local/azpim.yaml, waits until every
+subscription is visible, then syncs the az CLI subscription list. Opens a
+browser when the cached session has expired or azpim's last login was more
+than AZPIM_RELOGIN_AFTER seconds ago (default 12h), so the 24h sign-in cap
+starts in the morning instead of running out mid-day.
+
+Commands:
+  (none)               Activate all configured roles
+  role-filter...       Activate only these roles (exact role display names)
+  init                 Create the config interactively
+  aks-token [context]  Pre-cache the AKS token for a kubectl context (default: current)
+
+Options:
+  -f, --force    Deactivate and re-activate active roles for a fresh window
+                 (with init: overwrite an existing config)
+  -v, --verbose  Show progress detail
+  -d, --debug    Also show raw API requests and responses
+  -h, --help     Show this help
+
+Env: AZURE_VERBOSE=1 / AZURE_DEBUG=1 act like -v / -d
+     AZPIM_RELOGIN_AFTER=<seconds> re-login threshold (default 43200)
+EOF
+}
+
 azpim() {
     _az_parse_debug "$@"
     set -- "${_az_remaining_args[@]}"
+    [[ "$_az_help" -eq 1 ]] && { _azpim_usage; return 0; }
     case "${1:-}" in
         init)      shift; _azpim_init "$@" ;;
         aks-token) shift; _azpim_aks_token "$@" ;;
@@ -176,6 +209,41 @@ ${subscriptions_yaml}"
     echo "Written: $config_file"
 }
 
+# Conditional Access caps a sign-in at 24h (AADSTS70043), counted from the interactive
+# login, and silent refreshes don't extend it. Reusing yesterday's session means it dies
+# mid-afternoon, so azpim logs in again once the last login it did is this old.
+_azpim_login_stamp="$HOME/.local/state/azpim/last-login"
+: ${AZPIM_RELOGIN_AFTER:=43200}
+
+# Internal: az login against the configured tenant
+# stdout is the accounts JSON, kept quiet unless verbose; stderr carries the browser prompt
+_azpim_login() {
+    local tenant_id="$1"; shift
+    if [[ "$_az_verbose" -eq 1 ]]; then
+        AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" "$@" || return
+    else
+        AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" "$@" > /dev/null || return
+    fi
+    mkdir -p "${_azpim_login_stamp:h}" && date +%s > "$_azpim_login_stamp"
+}
+
+# Internal: seconds since azpim's last interactive login (huge when unknown)
+_azpim_login_age() {
+    local last
+    last=$(cat "$_azpim_login_stamp" 2>/dev/null)
+    [[ "$last" == <-> ]] || { echo 999999999; return; }
+    echo $(( $(date +%s) - last ))
+}
+
+# Internal: PUT a roleAssignmentScheduleRequest at a scope, print the response
+# Usage: _azpim_request <token> <scope> <body>
+_azpim_request() {
+    local url="https://management.azure.com$2/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$(uuidgen | tr '[:upper:]' '[:lower:]')?api-version=2020-10-01"
+    _az_dbg "PUT $url"
+    _az_dbg "body=$3"
+    curl -s -X PUT -H "Authorization: Bearer $1" -H "Content-Type: application/json" -d "$3" "$url"
+}
+
 # Internal: activate PIM roles (optionally filtered by role name)
 # Usage: _azpim_activate [role-filter...]  — empty = activate all
 _azpim_activate() {
@@ -184,7 +252,7 @@ _azpim_activate() {
     { set +x; } 2>/dev/null  # disable xtrace; the 2>/dev/null swallows the xtrace-of-set+x itself
     [[ "$_az_debug"   -eq 1 ]] && echo "(debug mode active — run without -d for quiet output)"
     [[ "$_az_verbose" -eq 1 && "$_az_debug" -eq 0 ]] && echo "(verbose mode active — run without -v for quiet output)"
-    [[ "$_az_force"   -eq 1 ]] && echo "(force mode — all roles will be re-activated regardless of current state)"
+    [[ "$_az_force"   -eq 1 ]] && echo "(force mode — active roles will be deactivated and re-activated for a fresh window)"
     local config_file="$HOME/.config/local/azpim.yaml"
 
     # Validate dependencies
@@ -214,24 +282,34 @@ _azpim_activate() {
         return 1
     fi
 
-    # Azure login (opens browser for MFA)
-    # stderr (browser URL message) always shown; stdout (JSON accounts list) suppressed unless verbose
-    echo "Logging in to Azure tenant $tenant_id..."
-    if [[ "$_az_verbose" -eq 1 ]]; then
-        if ! AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" --allow-no-subscriptions; then
+    local arm_base="https://management.azure.com"
+    local get_token=(az account get-access-token --tenant "$tenant_id" --resource "$arm_base" --query accessToken -o tsv)
+
+    # RBAC is evaluated by ARM, not carried in the token, so a cached session is as good
+    # as a fresh login. Open the browser only when a silent token can't be had, or when
+    # the session is old enough that the 24h sign-in cap would end it during the day.
+    local mgmt_token login_age
+    login_age=$(_azpim_login_age)
+    _az_dbg "last azpim login ${login_age}s ago (relogin after ${AZPIM_RELOGIN_AFTER}s)"
+    [[ "$login_age" -lt "$AZPIM_RELOGIN_AFTER" ]] && mgmt_token=$(_az_run "${get_token[@]}")
+    if [[ -z "$mgmt_token" ]]; then
+        echo "Logging in to Azure tenant $tenant_id (restarts the 24h sign-in window)..."
+        if ! _azpim_login "$tenant_id" --allow-no-subscriptions; then
             echo "Error: Azure login failed"
+            return 1
+        fi
+        mgmt_token=$(_az_run "${get_token[@]}")
+        if [[ -z "$mgmt_token" ]]; then
+            echo "Error: Could not acquire management API token for tenant $tenant_id"
             return 1
         fi
     else
-        if ! AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" --allow-no-subscriptions > /dev/null; then
-            echo "Error: Azure login failed"
-            return 1
-        fi
+        _az_info "Reusing cached Azure session for tenant $tenant_id"
     fi
 
-    # Get principal ID
+    # The token's oid claim is the signed-in user's object ID; saves a Graph call
     local principal_id
-    principal_id=$(_az_run az ad signed-in-user show --query id -o tsv)
+    principal_id=$(jq -rR 'split(".")[1] | gsub("-";"+") | gsub("_";"/") | . + ("=" * ((4 - length % 4) % 4)) | @base64d | fromjson | .oid // empty' <<< "$mgmt_token" 2>/dev/null)
     if [[ -z "$principal_id" ]]; then
         echo "Error: Could not determine signed-in user principal ID"
         return 1
@@ -239,37 +317,28 @@ _azpim_activate() {
     _az_info "Principal ID: $principal_id"
     _az_info ""
 
-    # Get management API token explicitly scoped to our tenant
-    local mgmt_token
-    mgmt_token=$(_az_run az account get-access-token --tenant "$tenant_id" --resource "https://management.azure.com" --query accessToken -o tsv)
-    if [[ -z "$mgmt_token" ]]; then
-        echo "Error: Could not acquire management API token for tenant $tenant_id"
-        return 1
-    fi
-
-    local arm_base="https://management.azure.com"
-
-    # Resolve default subscription (needed for both early-return and normal paths)
     local default_sub_id default_sub_name
     default_sub_id=$(yq -r '.subscriptions[] | select(.default == true) | .id' "$config_file")
     default_sub_name=$(yq -r '.subscriptions[] | select(.default == true) | .name' "$config_file")
 
-    # Iterate subscriptions and roles
-    local sub_count role_count activated=0 skipped=0 failed=0
+    # Declared once up front: zsh prints a variable's value when `local` re-declares it,
+    # which inside these loops dumped every variable on the second pass
+    local s r f matched sub_count role_count activated=0 skipped=0 failed=0
+    local sub_name sub_id role_name eligible_url eligible_assignments elig
+    local role_def_id elig_schedule_id scope body resp err_code deactivated attempt
+    typeset -A target_subs   # subscriptions we now hold a role in: id -> name
     sub_count=$(yq -r '.subscriptions | length' "$config_file")
 
     echo "Activating PIM roles..."
 
     for (( s=0; s<sub_count; s++ )); do
-        local sub_name sub_id
         sub_name=$(yq -r ".subscriptions[$s].name" "$config_file")
         sub_id=$(yq -r ".subscriptions[$s].id" "$config_file")
         role_count=$(yq -r ".subscriptions[$s].roles | length" "$config_file")
 
         _az_info "--- $sub_name ($sub_id) ---"
 
-        # Fetch eligible assignments for this subscription
-        local eligible_assignments eligible_url
+        # asTarget() at subscription scope also returns eligibilities on descendant scopes
         eligible_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleEligibilityScheduleInstances?\$filter=asTarget()&api-version=2020-10-01"
         _az_dbg "GET $eligible_url"
         eligible_assignments=$(curl -s -H "Authorization: Bearer $mgmt_token" "$eligible_url")
@@ -286,12 +355,11 @@ _azpim_activate() {
         fi
 
         for (( r=0; r<role_count; r++ )); do
-            local role_name role_def_id
             role_name=$(yq -r ".subscriptions[$s].roles[$r]" "$config_file")
 
             # If role filters provided and this role doesn't match, skip silently
             if [[ ${#role_filters[@]} -gt 0 ]]; then
-                local matched=0
+                matched=0
                 for f in "${role_filters[@]}"; do
                     [[ "$role_name" == "$f" ]] && matched=1 && break
                 done
@@ -300,145 +368,79 @@ _azpim_activate() {
 
             _az_info "  Role: $role_name"
 
-            # Look up role definition ID from eligible assignments
-            role_def_id=$(echo "$eligible_assignments" | jq -r \
-                --arg name "$role_name" \
-                '[.value[] | select(.properties.expandedProperties.roleDefinition.displayName == $name)] | first | .properties.expandedProperties.roleDefinition.id // empty')
-            _az_dbg "role_def_id=$role_def_id"
-
-            if [[ -z "$role_def_id" ]]; then
+            elig=$(echo "$eligible_assignments" | jq -c --arg name "$role_name" \
+                '[.value[] | select(.properties.expandedProperties.roleDefinition.displayName == $name)] | first // empty')
+            if [[ -z "$elig" ]]; then
                 echo "  [FAIL] $sub_name  $role_name"
                 echo "         No eligible assignment found (check role name matches exactly in Azure)"
                 failed=$((failed + 1))
                 continue
             fi
+            role_def_id=$(jq -r '.properties.roleDefinitionId' <<< "$elig")
+            elig_schedule_id=$(jq -r '.properties.roleEligibilityScheduleId' <<< "$elig")
+            # Requests must go to the scope the eligibility lives at; anywhere else PIM
+            # answers RoleAssignmentDoesNotExist
+            scope=$(jq -r '.properties.scope' <<< "$elig")
+            _az_dbg "role_def_id=$role_def_id scope=$scope elig_schedule_id=$elig_schedule_id"
 
-            # Pre-check: skip entirely if role is already active
-            # Avoids deactivating an active role and then failing to reactivate it
-            local precheck_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleInstances?\$filter=asTarget()&api-version=2020-10-01"
-            local already_active_count
-            already_active_count=$(curl -s -H "Authorization: Bearer $mgmt_token" "$precheck_url" | jq -r \
-                --arg rd "$role_def_id" --arg pid "$principal_id" \
-                '[.value[] | select(.properties.roleDefinitionId == $rd and .properties.principalId == $pid)] | length')
-            _az_dbg "already_active_count=${already_active_count:-?}"
-            if [[ "${already_active_count:-0}" -gt 0 ]]; then
-                if [[ "$_az_force" -eq 0 ]]; then
-                    echo "  [SKIP]  $sub_name  $role_name  (already active — use -f to force)"
-                    skipped=$((skipped + 1))
-                    continue
-                fi
-                _az_info "  [FORCE] $sub_name  $role_name  (deactivating active role)"
-            fi
-
-            # Deactivate first to ensure a fresh activation window
-            _az_info "    Deactivating (if active)..."
-            local deactivate_guid deactivate_body deactivate_url
-            deactivate_guid=$(uuidgen | tr '[:upper:]' '[:lower:]')
-            deactivate_body=$(jq -n \
-                --arg pid "$principal_id" \
-                --arg rdid "$role_def_id" \
-                --arg reason "$reason" \
-                '{
-                    "Properties": {
-                        "PrincipalId": $pid,
-                        "RoleDefinitionId": $rdid,
-                        "RequestType": "SelfDeactivate",
-                        "Justification": $reason
-                    }
-                }')
-
-            deactivate_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$deactivate_guid?api-version=2020-10-01"
-            _az_dbg "PUT $deactivate_url"
-            _az_dbg "body=$deactivate_body"
-
-            local deactivate_resp
-            deactivate_resp=$(curl -s -X PUT \
-                -H "Authorization: Bearer $mgmt_token" \
-                -H "Content-Type: application/json" \
-                -d "$deactivate_body" "$deactivate_url")
-            _az_dbg "deactivate_resp=$(echo "$deactivate_resp" | jq -c '.')"
-
-            local deactivate_error_code
-            deactivate_error_code=$(echo "$deactivate_resp" | jq -r '.error.code // empty')
-
-            if [[ "$deactivate_error_code" == "RoleAssignmentDoesNotExist" ]]; then
-                _az_info "    Not active (skipping deactivation)"
-            elif [[ -n "$deactivate_error_code" ]]; then
-                _az_info "    Warning: Deactivation error ($deactivate_error_code) — proceeding with activation"
-                _az_dbg "$(echo "$deactivate_resp" | jq -r '.error.message // empty')"
-            else
-                # Wait for deactivation to complete before activating
-                _az_info "    Waiting for deactivation..."
-                local wait_attempt=0
-                local active_check_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleInstances?\$filter=asTarget()&api-version=2020-10-01"
-                while [[ $wait_attempt -lt 15 ]]; do
-                    sleep 2
-                    local active_check
-                    active_check=$(curl -s -H "Authorization: Bearer $mgmt_token" "$active_check_url")
-                    local still_active
-                    still_active=$(echo "$active_check" | jq -r \
-                        --arg rd "$role_def_id" \
-                        --arg pid "$principal_id" \
-                        '[.value[] | select(.properties.roleDefinitionId == $rd and .properties.principalId == $pid)] | length')
-                    _az_dbg "still_active=$still_active (attempt $wait_attempt)"
-                    if [[ "$still_active" == "0" ]]; then
-                        _az_info "    Deactivated"
-                        break
-                    fi
-                    wait_attempt=$((wait_attempt + 1))
-                done
-                if [[ $wait_attempt -ge 15 ]]; then
-                    _az_info "    Warning: Deactivation timed out after 30s — proceeding anyway"
+            # No "is it active?" pre-check: roleAssignmentScheduleInstances?asTarget() can
+            # come back empty while the role is active. The activate response is the
+            # reliable signal (RoleAssignmentExists means already active).
+            deactivated=0
+            if [[ "$_az_force" -eq 1 ]]; then
+                _az_info "    Deactivating (if active)..."
+                # Without the full eligibility schedule ID, SelfDeactivate also answers
+                # RoleAssignmentDoesNotExist for a role that is active
+                body=$(jq -n --arg pid "$principal_id" --arg rdid "$role_def_id" \
+                    --arg esid "$elig_schedule_id" --arg reason "$reason" \
+                    '{properties: {principalId: $pid, roleDefinitionId: $rdid, requestType: "SelfDeactivate",
+                                   linkedRoleEligibilityScheduleId: $esid, justification: $reason}}')
+                resp=$(_azpim_request "$mgmt_token" "$scope" "$body")
+                _az_dbg "deactivate_resp=$(echo "$resp" | jq -c '.')"
+                err_code=$(echo "$resp" | jq -r '.error.code // empty')
+                if [[ -z "$err_code" ]]; then
+                    deactivated=1
+                    _az_info "    Deactivated"
+                elif [[ "$err_code" == "RoleAssignmentDoesNotExist" ]]; then
+                    _az_info "    Not active"
+                else
+                    _az_info "    Warning: Deactivation error ($err_code), proceeding with activation"
+                    _az_dbg "$(echo "$resp" | jq -r '.error.message // empty')"
                 fi
             fi
 
-            # Activate fresh
-            local activate_guid activate_body activate_url
-            activate_guid=$(uuidgen | tr '[:upper:]' '[:lower:]')
-            activate_body=$(jq -n \
-                --arg pid "$principal_id" \
-                --arg rdid "$role_def_id" \
-                --arg reason "$reason" \
-                --arg duration "$duration" \
-                '{
-                    "Properties": {
-                        "PrincipalId": $pid,
-                        "RoleDefinitionId": $rdid,
-                        "RequestType": "SelfActivate",
-                        "Justification": $reason,
-                        "ScheduleInfo": {
-                            "StartDateTime": null,
-                            "Expiration": {
-                                "Duration": $duration,
-                                "Type": "AfterDuration"
-                            }
-                        }
-                    }
-                }')
+            body=$(jq -n --arg pid "$principal_id" --arg rdid "$role_def_id" \
+                --arg esid "$elig_schedule_id" --arg reason "$reason" --arg duration "$duration" \
+                '{properties: {principalId: $pid, roleDefinitionId: $rdid, requestType: "SelfActivate",
+                               linkedRoleEligibilityScheduleId: $esid, justification: $reason,
+                               scheduleInfo: {expiration: {type: "AfterDuration", duration: $duration}}}}')
 
-            activate_url="$arm_base/subscriptions/$sub_id/providers/Microsoft.Authorization/roleAssignmentScheduleRequests/$activate_guid?api-version=2020-10-01"
-            _az_dbg "PUT $activate_url"
-            _az_dbg "body=$activate_body"
+            # Right after a deactivation, PIM keeps answering RoleAssignmentExists for a few seconds
+            attempt=0
+            while true; do
+                resp=$(_azpim_request "$mgmt_token" "$scope" "$body")
+                _az_dbg "activate_resp=$(echo "$resp" | jq -c '.')"
+                err_code=$(echo "$resp" | jq -r '.error.code // empty')
+                [[ "$err_code" == "RoleAssignmentExists" && $deactivated -eq 1 && $attempt -lt 10 ]] || break
+                attempt=$((attempt + 1))
+                sleep 3
+            done
 
-            local activate_resp
-            activate_resp=$(curl -s -X PUT \
-                -H "Authorization: Bearer $mgmt_token" \
-                -H "Content-Type: application/json" \
-                -d "$activate_body" "$activate_url")
-            _az_dbg "activate_resp=$(echo "$activate_resp" | jq -c '.')"
-
-            local activate_error_code
-            activate_error_code=$(echo "$activate_resp" | jq -r '.error.code // empty')
-            if [[ -z "$activate_error_code" ]]; then
+            if [[ -z "$err_code" ]]; then
                 echo "  [OK]   $sub_name  $role_name  $duration"
                 activated=$((activated + 1))
-            elif [[ "$activate_error_code" == "RoleAssignmentExists" ]]; then
-                # Race: deactivation submitted but not yet propagated when we activated
-                echo "  [SKIP]  $sub_name  $role_name  (role still active, will expire on schedule)"
+                target_subs[$sub_id]="$sub_name"
+            elif [[ "$err_code" == "RoleAssignmentExists" ]]; then
+                if [[ $deactivated -eq 1 ]]; then
+                    echo "  [SKIP] $sub_name  $role_name  (still active after deactivation, window not reset)"
+                else
+                    echo "  [SKIP] $sub_name  $role_name  (already active, use -f to start a fresh window)"
+                fi
                 skipped=$((skipped + 1))
+                target_subs[$sub_id]="$sub_name"
             else
                 echo "  [FAIL] $sub_name  $role_name"
-                echo "         $(echo "$activate_resp" | jq -r '.error.message // "Unknown error"')"
+                echo "         $(echo "$resp" | jq -r '.error.message // "Unknown error"')"
                 failed=$((failed + 1))
             fi
         done
@@ -446,86 +448,89 @@ _azpim_activate() {
     done
 
     echo ""
+    echo "Done: $activated activated, $skipped already active, $failed failed"
+    [[ ${#target_subs} -eq 0 ]] && return 1
 
-    # Fast path: all roles already active — no need to poll ARM, just sync CLI context
-    if [[ "$activated" -eq 0 && "$failed" -eq 0 && "$skipped" -gt 0 ]]; then
-        echo "All $skipped PIM role(s) already active. Use 'azpim -f' to force re-activation."
-        echo ""
-        echo "  Syncing CLI context..."
-        # 2>&1 >/dev/null pipes stderr through grep (keeping WARNING: lines) while stdout goes to /dev/null
-        AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" 2>&1 >/dev/null | grep "^WARNING:" || true
-        if [[ -n "$default_sub_id" ]]; then
-            if az account set --subscription "$default_sub_id" 2>/dev/null; then
-                echo "  Default subscription: $default_sub_name"
-            else
-                echo "  Warning: Could not set default subscription"
-                echo "  Run: az account set --subscription $default_sub_id  # $default_sub_name"
-            fi
-        fi
-        return 0
-    fi
-
-    if [[ "$skipped" -gt 0 ]]; then
-        echo "Done: $activated activated, $skipped skipped (already active), $failed failed"
-    else
-        echo "Done: $activated activated, $failed failed"
-    fi
-
-    # Refresh management token — PIM may have changed role assignments since login
-    # The original token was issued before activation; a fresh one picks up current permissions
-    local fresh_token
-    fresh_token=$(_az_run az account get-access-token --tenant "$tenant_id" --resource "https://management.azure.com" --query accessToken -o tsv)
-    [[ -n "$fresh_token" ]] && mgmt_token="$fresh_token"
-
-    # Wait for PIM propagation — poll ARM REST directly (safe: does NOT touch CLI account state)
-    # Calling `az account list --refresh` in a loop while ARM returns empty clears the CLI session.
+    # A fresh assignment takes up to several minutes to show in ARM, each subscription on
+    # its own schedule, and for a while replicas disagree: the CLI's own query has come back
+    # empty seconds after this poll listed everything. So poll with the CLI's token audience
+    # (management.core.windows.net) and only move on after several clean answers in a row.
+    local id poll_token poll_resp visible streak=0
+    local -a missing
+    poll_token=$(_az_run az account get-access-token --tenant "$tenant_id" --query accessToken -o tsv)
+    [[ -z "$poll_token" ]] && poll_token="$mgmt_token"
     echo ""
-    echo -n "Waiting for PIM propagation"
-    local refresh_attempt=0
-    local sub_found=0
-    local poll_url
-    if [[ -n "$default_sub_id" ]]; then
-        # Check the specific subscription we care about
-        poll_url="${arm_base}/subscriptions/${default_sub_id}?api-version=2022-12-01"
-    else
-        # Fall back to listing all subscriptions
-        poll_url="${arm_base}/subscriptions?api-version=2022-12-01"
-    fi
-
-    while [[ $refresh_attempt -lt 24 ]]; do
-        sleep 5
+    echo -n "Waiting for subscriptions to become visible"
+    attempt=0
+    while true; do
+        poll_resp=$(curl -s -H "Authorization: Bearer $poll_token" "$arm_base/subscriptions?api-version=2022-12-01")
+        visible=$(echo "$poll_resp" | jq -r '.value[]?.subscriptionId' 2>/dev/null)
+        missing=()
+        for id in ${(k)target_subs}; do
+            grep -qx "$id" <<< "$visible" || missing+=("$id")
+        done
+        if [[ ${#missing} -eq 0 ]]; then streak=$((streak + 1)); else streak=0; fi
+        _az_dbg " missing=${missing[*]:-none} streak=$streak (attempt $attempt)"
+        [[ $streak -ge 3 || $attempt -ge 120 ]] && break
         printf "."
-        local poll_resp
-        poll_resp=$(curl -s -H "Authorization: Bearer $mgmt_token" "$poll_url")
-        _az_dbg " poll=$(echo "$poll_resp" | jq -c '.subscriptionId // (.value[0].subscriptionId // .error.code // "empty")')"
-        if echo "$poll_resp" | jq -e '.subscriptionId // .value[0].subscriptionId' &>/dev/null; then
-            sub_found=1
-            break
-        fi
-        refresh_attempt=$((refresh_attempt + 1))
+        attempt=$((attempt + 1))
+        sleep 5
     done
     echo ""
 
-    if [[ "$sub_found" -eq 1 ]]; then
-        # ARM confirmed subscription is visible — re-login to sync CLI subscription list
-        # MSAL uses the cached session so browser interaction is usually minimal (click "Continue")
-        echo "  Subscription visible — re-authenticating to sync CLI context..."
-        # 2>&1 >/dev/null pipes stderr through grep (keeping WARNING: lines) while stdout goes to /dev/null
-        AZURE_CORE_LOGIN_EXPERIENCE_V2=off az login --tenant "$tenant_id" 2>&1 >/dev/null | grep "^WARNING:" || true
-        if [[ -n "$default_sub_id" ]]; then
-            if az account set --subscription "$default_sub_id" 2>/dev/null; then
-                echo "  Default subscription: $default_sub_name"
-            else
-                echo "  Warning: Could not set default subscription $default_sub_name ($default_sub_id)"
-                echo "  Run: az account set --subscription $default_sub_id  # $default_sub_name"
-            fi
+    if [[ ${#missing} -gt 0 ]]; then
+        echo "  Warning: not visible after $(( attempt * 5 ))s:"
+        for id in "${missing[@]}"; do
+            echo "    ${target_subs[$id]} ($id)"
+            unset "target_subs[$id]"
+        done
+        echo "  When they show up, run: az account list --refresh -o none"
+        [[ ${#target_subs} -eq 0 ]] && return 1
+    fi
+
+    # Refresh reuses the cached session (no browser), but it replaces the stored list with
+    # whatever ARM answers, and an empty answer leaves the CLI with no accounts at all.
+    # Keep a copy of the profile, put it back whenever a refresh comes up short, retry.
+    local profile="${AZURE_CONFIG_DIR:-$HOME/.azure}/azureProfile.json"
+    local backup="${AZURE_CONFIG_DIR:-$HOME/.azure}/azureProfile.azpim-bak.json" known
+    echo -n "  Syncing CLI subscription list"
+    for (( attempt=0; attempt<12; attempt++ )); do
+        [[ -f "$profile" ]] && cp -p "$profile" "$backup"
+        _az_run az account list --refresh -o none
+        known=$(_az_run az account list --query "[].id" -o tsv)
+        missing=()
+        for id in ${(k)target_subs}; do
+            grep -qx "$id" <<< "$known" || missing+=("$id")
+        done
+        _az_dbg " cli missing=${missing[*]:-none} (attempt $attempt)"
+        [[ ${#missing} -eq 0 ]] && break
+        [[ -f "$backup" ]] && cp -p "$backup" "$profile"
+        printf "."
+        sleep 10
+    done
+    [[ -f "$backup" ]] && command rm -f -- "$backup"
+    echo ""
+
+    if [[ ${#missing} -gt 0 ]]; then
+        # --allow-no-subscriptions so a still-empty answer leaves a tenant-level account
+        # behind instead of failing, which keeps the next refresh safe
+        echo "  Refresh did not pick up every subscription, logging in again..."
+        _azpim_login "$tenant_id" --allow-no-subscriptions
+        known=$(_az_run az account list --query "[].id" -o tsv)
+        for id in ${(k)target_subs}; do
+            grep -qx "$id" <<< "$known" && continue
+            echo "  Warning: ${target_subs[$id]} ($id) still missing from the CLI"
+            echo "  In a minute or two, run: az account list --refresh -o none"
+        done
+    fi
+
+    if [[ -n "$default_sub_id" ]]; then
+        if az account set --subscription "$default_sub_id" 2>/dev/null; then
+            echo "  Default subscription: $default_sub_name"
+        else
+            echo "  Warning: Could not set default subscription $default_sub_name ($default_sub_id)"
+            echo "  Run: az account set --subscription $default_sub_id  # $default_sub_name"
         fi
-    else
-        local elapsed=$(( refresh_attempt * 5 ))
-        echo "  Warning: Subscriptions not yet visible after ${elapsed}s — PIM propagation may still be in progress."
-        echo "  When ready, run:"
-        echo "    az login --tenant $tenant_id"
-        [[ -n "$default_sub_id" ]] && echo "    az account set --subscription $default_sub_id  # $default_sub_name"
     fi
 }
 
@@ -634,6 +639,13 @@ _azpim_aks_token() {
 azctx() {
     _az_parse_debug "$@"
     set -- "${_az_remaining_args[@]}"
+    if [[ "$_az_help" -eq 1 ]]; then
+        echo "Usage: azctx [-d|--debug] [context]"
+        echo ""
+        echo "Switches kubectl context. With no context, pick one (fzf or numbered list)."
+        echo "AKS contexts get their token pre-cached via 'azpim aks-token'."
+        return 0
+    fi
     local ctx="${1:-}"
 
     # If no context given, pick one
@@ -1051,9 +1063,26 @@ _azvm_kill_all() {
 }
 
 # Main azvm dispatcher
+_azvm_usage() {
+    echo "Usage: azvm [-h|-d|-o] [connect|ls|kill|kill-all]"
+    echo ""
+    echo "Commands:"
+    echo "  connect [vm-name]     Select a VM and start bastion tunnel (default)"
+    echo "  ls                    List active tunnels"
+    echo "  kill <name|port>      Kill a specific tunnel"
+    echo "  kill-all              Kill all tunnels"
+    echo ""
+    echo "Options:"
+    echo "  -o, --open     Also open RDP session after tunnel is ready"
+    echo "  -d, --debug    Show debug output"
+    echo "  -h, --help     Show this help"
+    echo "  AZURE_DEBUG=1  Enable debug via env var"
+}
+
 azvm() {
     _az_parse_debug "$@"
     set -- "${_az_remaining_args[@]}"
+    [[ "$_az_help" -eq 1 ]] && { _azvm_usage; return 0; }
     local subcmd="${1:-connect}"
     shift 2>/dev/null
 
@@ -1063,18 +1092,7 @@ azvm() {
         kill)       _azvm_kill "$@" ;;
         kill-all)   _azvm_kill_all "$@" ;;
         *)
-            echo "Usage: azvm [-d|--debug] [-o|--open] [connect|ls|kill|kill-all]"
-            echo ""
-            echo "Commands:"
-            echo "  connect [vm-name]     Select a VM and start bastion tunnel (default)"
-            echo "  ls                    List active tunnels"
-            echo "  kill <name|port>      Kill a specific tunnel"
-            echo "  kill-all              Kill all tunnels"
-            echo ""
-            echo "Options:"
-            echo "  -o, --open     Also open RDP session after tunnel is ready"
-            echo "  -d, --debug    Show debug output"
-            echo "  AZURE_DEBUG=1  Enable debug via env var"
+            _azvm_usage
             return 1
             ;;
     esac

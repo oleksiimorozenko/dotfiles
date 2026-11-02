@@ -15,6 +15,7 @@ Shell functions for daily Azure PIM RBAC role activation and subscription manage
 | `azpim -f` | Force re-activation even if roles are already active |
 | `azpim -v` | Verbose output (show progress detail) |
 | `azpim -d` | Debug output (verbose + raw API payloads) |
+| `azpim -h` | Show usage (also `azvm -h`, `azctx -h`) |
 | `azpim aks-token [context]` | Pre-cache AKS token for a kubectl context (default: current context) |
 | `azctx [context]` | Switch kubectl context; refreshes AKS token automatically if applicable |
 | `azgs` | **Az**ure **G**et **S**ubscription — print current default subscription name (no API call) |
@@ -22,13 +23,12 @@ Shell functions for daily Azure PIM RBAC role activation and subscription manage
 
 ### How `azpim` works
 
-1. Authenticates via `az login --allow-no-subscriptions` (browser/MFA)
+1. Reuses the cached Azure session if a token can be had silently and azpim last logged in under 12h ago (`AZPIM_RELOGIN_AFTER`); otherwise runs `az login --allow-no-subscriptions` (browser/MFA). Conditional Access caps a sign-in at 24h from the interactive login, so the morning run restarts that window
 2. For each configured subscription and role (optionally filtered by name):
-   - Skips if already active (with hint to use `-f` to force)
-   - Deactivates the role (if currently active and `-f` is passed)
-   - Activates the role via the ARM PIM API
-3. Polls ARM REST until the subscription is visible (PIM propagation)
-4. Re-authenticates (`az login`) to sync the CLI subscription list
+   - With `-f`, deactivates the role first so the new activation starts a fresh window
+   - Activates the role via the ARM PIM API at the scope the eligibility lives at; `RoleAssignmentExists` is reported as already active
+3. Polls ARM until every subscription it now holds a role in is listed, three answers in a row (PIM propagation)
+4. Syncs the CLI subscription list with `az account list --refresh` (no browser), restoring `azureProfile.json` if a refresh comes back short; falls back to `az login` if it never catches up
 5. Sets the configured default subscription
 
 ### How `azpim aks-token` works
