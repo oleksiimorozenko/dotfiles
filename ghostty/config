@@ -43,6 +43,9 @@ keybind = shift+enter=text:\x1b\r
 #########
 # Hide mouse cursor while typing
 mouse-hide-while-typing = true
+# true only fills Ghostty's own selection buffer on macOS (middle-click paste);
+# clipboard also puts it on the system clipboard for cmd+v. cmux reads this file too.
+copy-on-select = clipboard
 
 ############
 # Terminal #
