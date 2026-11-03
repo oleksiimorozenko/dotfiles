@@ -59,6 +59,7 @@ For Jira/Slack comments, PR and commit messages, and status updates:
   - Datadog monitor: its name, linked to its monitor URL.
 - No redundant timestamps. The platform already records when a comment or commit landed; don't write the date unless it carries meaning the timestamp doesn't.
 - Outcome over mechanism. Don't explain how something was made (via API vs. as code, which tool) unless it changes what the reader should do. For code, provenance already lives in the branch name, PR, and commit (with the ticket ID), so there's nothing to restate. Keep technical caveats (drift, non-IaC, manual steps) in the internal note or runbook, not in stakeholder-facing comments.
+- When a draft awaiting my approval changes, show the complete updated text again, not only the changed lines, because I approve the exact text that ships. End each revision round with the full draft in one block and a one-line note on what changed. A diff is fine as an extra for code and docs files, not as a replacement.
 
 ## Working principles
 
@@ -81,3 +82,16 @@ We check each other's work: either of us can misremember or be working from stal
 
 - Staging (`git add`) is fine for files we agreed to include. Never run `git commit`, `push`, `merge`, `rebase`, or any history-altering command unless I tell you to.
 - This applies to every repo by default. Any exception is scoped and stated explicitly where it applies.
+
+### Notes we both edit
+
+When a note is shared working space (I comment in it, tick boxes, add lines):
+
+- Re-read it right before you change it. Change it only with exact-match edits.
+- Never regenerate a section from your own data or rewrite it with a script, because that drops whatever I added since your last read.
+- Before a structural change such as list to table, carry my text into the new structure and diff old against new.
+
+### Shell commands
+
+- If the shell tool runs zsh, an unquoted variable does not word-split: `ids="a b"; cmd $ids` passes one argument. Use an array, `ids=(a b)` and `"${ids[@]}"`. A bare word that starts with `=` (for example `echo ======`) also fails, because zsh expands `=cmd`.
+- Bound every wait loop with a timeout or an iteration cap.
