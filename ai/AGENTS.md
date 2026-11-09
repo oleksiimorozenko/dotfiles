@@ -94,4 +94,7 @@ When a note is shared working space (I comment in it, tick boxes, add lines):
 ### Shell commands
 
 - If the shell tool runs zsh, an unquoted variable does not word-split: `ids="a b"; cmd $ids` passes one argument. Use an array, `ids=(a b)` and `"${ids[@]}"`. A bare word that starts with `=` (for example `echo ======`) also fails, because zsh expands `=cmd`.
+- zsh's `echo "$json"` turns each `\n` inside the text into a real newline and breaks `jq`, so use `printf '%s\n' "$json"` or write the output to a file. A colon after a bare variable is a modifier (`$C:apps` applies `:a`), so write `${C}:apps`. An unquoted `?` or `*` that matches no file fails, even inside `$(...)`, so quote format strings such as `--format='%G?'`.
+- macOS ships bash 3.2, with no associative arrays and no `mapfile`. Write scripts for bash 3.2 or zsh.
+- macOS sed is BSD: no `\|` in basic regex, so use `sed -E`. Never print a value and then filter secrets out with sed, jq or grep. Select what you need by name: `env | cut -d= -f1`.
 - Bound every wait loop with a timeout or an iteration cap.
