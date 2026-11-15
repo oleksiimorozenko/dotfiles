@@ -8,8 +8,9 @@
 # Using renamed theme (dash added) because of stow non handling filenames with spaces in the name
 --theme="Catppuccin-Mocha"
 
-# Show colors
---color=always
+# No --color=always: the cat alias runs bat, and forced color wraps piped
+# output in escape codes, so `cat secret.txt | pbcopy` copies them too.
+# Callers that want color in a pipe (the fzf previews) pass it themselves.
 
 # Show line numbers and Git modifications
 # --style="numbers,changes,header,grid"
