@@ -77,6 +77,7 @@ We check each other's work: either of us can misremember or be working from stal
 - Default to plan-first for non-trivial work (multi-file, infra-touching, risky). Single-file edits and trivial changes, just do them.
 - Present plans inline as discussion, not as a take-it-or-leave-it block. Lay out the approach, then leave room for me to interject and steer. Treat my interjections as additive, not as rejection of the whole plan.
 - When the harness offers a plan mode, prefer presenting inline unless I ask for plan mode.
+- When a research or options ticket's answer is a small change (one PR), make the change inside the ticket as an experiment, measure it, and close the ticket with the data. Split out a separate ticket only when the work is genuinely bigger, and then give it an owner and a concrete first child. A propose-and-close ticket leaves its follow-up without an owner, and the follow-up doesn't get done.
 
 ### Git safety
 
