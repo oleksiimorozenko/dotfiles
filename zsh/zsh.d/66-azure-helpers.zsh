@@ -69,10 +69,9 @@ Usage: azpim [options] [role-filter...]
        azpim [options] aks-token [context]
 
 Activates the PIM roles in ~/.config/local/azpim.yaml, waits until every
-subscription is visible, then syncs the az CLI subscription list. Opens a
-browser when the cached session has expired or azpim's last login was more
-than AZPIM_RELOGIN_AFTER seconds ago (default 12h), so the 24h sign-in cap
-starts in the morning instead of running out mid-day.
+subscription is visible, then syncs the az CLI subscription list. Every run
+logs out and opens a browser login, so the 24h sign-in cap starts together
+with the PIM window and outlasts it. Ends by printing when the window closes.
 
 Commands:
   (none)               Activate all configured roles
@@ -88,7 +87,6 @@ Options:
   -h, --help     Show this help
 
 Env: AZURE_VERBOSE=1 / AZURE_DEBUG=1 act like -v / -d
-     AZPIM_RELOGIN_AFTER=<seconds> re-login threshold (default 43200)
 EOF
 }
 
@@ -210,10 +208,9 @@ ${subscriptions_yaml}"
 }
 
 # Conditional Access caps a sign-in at 24h (AADSTS70043), counted from the interactive
-# login, and silent refreshes don't extend it. Reusing yesterday's session means it dies
-# mid-afternoon, so azpim logs in again once the last login it did is this old.
+# login, and silent refreshes don't extend it. Every activation run logs out and in again,
+# so the CLI session always starts with the PIM window and outlasts it.
 _azpim_login_stamp="$HOME/.local/state/azpim/last-login"
-: ${AZPIM_RELOGIN_AFTER:=43200}
 
 # Internal: az login against the configured tenant
 # stdout is the accounts JSON, kept quiet unless verbose; stderr carries the browser prompt
@@ -227,12 +224,10 @@ _azpim_login() {
     mkdir -p "${_azpim_login_stamp:h}" && date +%s > "$_azpim_login_stamp"
 }
 
-# Internal: seconds since azpim's last interactive login (huge when unknown)
-_azpim_login_age() {
-    local last
-    last=$(cat "$_azpim_login_stamp" 2>/dev/null)
-    [[ "$last" == <-> ]] || { echo 999999999; return; }
-    echo $(( $(date +%s) - last ))
+# Internal: ISO 8601 duration (PT12H, PT8H30M) in seconds, empty when unparseable
+_azpim_duration_secs() {
+    [[ "$1" =~ '^PT(([0-9]+)H)?(([0-9]+)M)?$' ]] || return
+    echo $(( ${match[2]:-0} * 3600 + ${match[4]:-0} * 60 ))
 }
 
 # Internal: PUT a roleAssignmentScheduleRequest at a scope, print the response
@@ -285,26 +280,19 @@ _azpim_activate() {
     local arm_base="https://management.azure.com"
     local get_token=(az account get-access-token --tenant "$tenant_id" --resource "$arm_base" --query accessToken -o tsv)
 
-    # RBAC is evaluated by ARM, not carried in the token, so a cached session is as good
-    # as a fresh login. Open the browser only when a silent token can't be had, or when
-    # the session is old enough that the 24h sign-in cap would end it during the day.
-    local mgmt_token login_age
-    login_age=$(_azpim_login_age)
-    _az_dbg "last azpim login ${login_age}s ago (relogin after ${AZPIM_RELOGIN_AFTER}s)"
-    [[ "$login_age" -lt "$AZPIM_RELOGIN_AFTER" ]] && mgmt_token=$(_az_run "${get_token[@]}")
+    # Logging out first drops the cached refresh token, so the 24h cap can't be counted
+    # from an older sign-in that's still sitting in the cache
+    local mgmt_token
+    echo "Logging in to Azure tenant $tenant_id (restarts the 24h sign-in window)..."
+    _az_run az logout
+    if ! _azpim_login "$tenant_id" --allow-no-subscriptions; then
+        echo "Error: Azure login failed"
+        return 1
+    fi
+    mgmt_token=$(_az_run "${get_token[@]}")
     if [[ -z "$mgmt_token" ]]; then
-        echo "Logging in to Azure tenant $tenant_id (restarts the 24h sign-in window)..."
-        if ! _azpim_login "$tenant_id" --allow-no-subscriptions; then
-            echo "Error: Azure login failed"
-            return 1
-        fi
-        mgmt_token=$(_az_run "${get_token[@]}")
-        if [[ -z "$mgmt_token" ]]; then
-            echo "Error: Could not acquire management API token for tenant $tenant_id"
-            return 1
-        fi
-    else
-        _az_info "Reusing cached Azure session for tenant $tenant_id"
+        echo "Error: Could not acquire management API token for tenant $tenant_id"
+        return 1
     fi
 
     # The token's oid claim is the signed-in user's object ID; saves a Graph call
@@ -326,6 +314,8 @@ _azpim_activate() {
     local s r f matched sub_count role_count activated=0 skipped=0 failed=0
     local sub_name sub_id role_name eligible_url eligible_assignments elig
     local role_def_id elig_schedule_id scope body resp err_code deactivated attempt
+    local duration_secs pim_end=0
+    duration_secs=$(_azpim_duration_secs "$duration")
     typeset -A target_subs   # subscriptions we now hold a role in: id -> name
     sub_count=$(yq -r '.subscriptions | length' "$config_file")
 
@@ -429,6 +419,7 @@ _azpim_activate() {
             if [[ -z "$err_code" ]]; then
                 echo "  [OK]   $sub_name  $role_name  $duration"
                 activated=$((activated + 1))
+                [[ -n "$duration_secs" && $pim_end -eq 0 ]] && pim_end=$(( $(date +%s) + duration_secs ))
                 target_subs[$sub_id]="$sub_name"
             elif [[ "$err_code" == "RoleAssignmentExists" ]]; then
                 if [[ $deactivated -eq 1 ]]; then
@@ -531,6 +522,16 @@ _azpim_activate() {
             echo "  Warning: Could not set default subscription $default_sub_name ($default_sub_id)"
             echo "  Run: az account set --subscription $default_sub_id  # $default_sub_name"
         fi
+    fi
+
+    # The CLI session runs 24h from the login above, so the PIM window is the deadline.
+    # pim_end comes from the first activation, the earliest one to run out.
+    echo ""
+    if [[ $pim_end -gt 0 ]]; then
+        echo "Good until $(date -r $pim_end '+%a %H:%M') (PIM window ends, run azpim again after that)"
+        [[ $skipped -gt 0 ]] && echo "  Roles that were already active end earlier; azpim -f lines them up"
+    else
+        echo "No role activated now, so the PIM window is unchanged; azpim -f starts a fresh one"
     fi
 }
 

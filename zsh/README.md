@@ -23,13 +23,14 @@ Shell functions for daily Azure PIM RBAC role activation and subscription manage
 
 ### How `azpim` works
 
-1. Reuses the cached Azure session if a token can be had silently and azpim last logged in under 12h ago (`AZPIM_RELOGIN_AFTER`); otherwise runs `az login --allow-no-subscriptions` (browser/MFA). Conditional Access caps a sign-in at 24h from the interactive login, so the morning run restarts that window
+1. Runs `az logout`, then `az login --allow-no-subscriptions` (browser/MFA) on every run. Conditional Access caps a sign-in at 24h from the interactive login, so each run restarts that window alongside the 12h PIM window
 2. For each configured subscription and role (optionally filtered by name):
    - With `-f`, deactivates the role first so the new activation starts a fresh window
    - Activates the role via the ARM PIM API at the scope the eligibility lives at; `RoleAssignmentExists` is reported as already active
 3. Polls ARM until every subscription it now holds a role in is listed, three answers in a row (PIM propagation)
 4. Syncs the CLI subscription list with `az account list --refresh` (no browser), restoring `azureProfile.json` if a refresh comes back short; falls back to `az login` if it never catches up
 5. Sets the configured default subscription
+6. Prints when the PIM window closes, which is the deadline for the day (the CLI session outlasts it)
 
 ### How `azpim aks-token` works
 
