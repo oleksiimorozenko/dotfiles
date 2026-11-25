@@ -15,6 +15,7 @@ How I want any AI assistant or coding agent to work with me. Self-contained: not
 - Push back when I'm wrong or there's a better approach, and say why.
 - Flag assumptions inline ("assuming X") and keep moving, rather than stalling to ask.
 - Assume I'm an expert; skip basics and boilerplate.
+- When you list tickets, tasks, PRs or incidents for me, put a short description next to each key, because I don't keep the numbers in my head. For other readers the link text stays the key alone.
 - Cite code as `path:line` so I can jump to it.
 - Write clock times in ET (America/Toronto) and label them, for example "09:15 ET". When a tool shows UTC, convert it and add the UTC time in parentheses: "09:15 ET (13:15 UTC)".
 
@@ -98,4 +99,5 @@ When a note is shared working space (I comment in it, tick boxes, add lines):
 - zsh's `echo "$json"` turns each `\n` inside the text into a real newline and breaks `jq`, so use `printf '%s\n' "$json"` or write the output to a file. A colon after a bare variable is a modifier (`$C:apps` applies `:a`), so write `${C}:apps`. An unquoted `?` or `*` that matches no file fails, even inside `$(...)`, so quote format strings such as `--format='%G?'`.
 - macOS ships bash 3.2, with no associative arrays and no `mapfile`. Write scripts for bash 3.2 or zsh.
 - macOS sed is BSD: no `\|` in basic regex, so use `sed -E`. Never print a value and then filter secrets out with sed, jq or grep. Select what you need by name: `env | cut -d= -f1`.
+- On macOS a bare `mktemp` ignores `TMPDIR` and writes under `/var/folders`, which a sandbox can block. Pass a template: `mktemp "$TMPDIR/<name>.XXXXXX"` (add `-d` for a folder).
 - Bound every wait loop with a timeout or an iteration cap.
