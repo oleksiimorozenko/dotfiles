@@ -12,3 +12,7 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
 # Set ZDOTDIR to XDG-compliant location
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+
+# zsh reads .zshenv once, before this line moves ZDOTDIR, so a shell started without ZDOTDIR
+# (launchd jobs, Claude Code's tool shell) would skip $ZDOTDIR/.zshenv
+[[ -r "$ZDOTDIR/.zshenv" ]] && source "$ZDOTDIR/.zshenv"
